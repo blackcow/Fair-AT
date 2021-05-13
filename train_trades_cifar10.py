@@ -16,6 +16,7 @@ from models.resnet import *
 from trades import trades_loss
 from pgd import pgd_loss
 from torch.utils.tensorboard import SummaryWriter
+# 增加 test
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR TRADES Adversarial Training')
 parser.add_argument('--batch-size', type=int, default=128, metavar='N',
