@@ -16,7 +16,6 @@ from models.resnet import *
 from trades import trades_loss
 from pgd import pgd_loss
 from torch.utils.tensorboard import SummaryWriter
-# 增加 test
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR TRADES Adversarial Training')
 parser.add_argument('--batch-size', type=int, default=128, metavar='N',
@@ -61,6 +60,7 @@ parser.add_argument('--save-freq', '-s', default=1, type=int, metavar='N',
                     help='save frequency')
 parser.add_argument('--model', default='wideresnet',
                     help='AT model name')
+parser.add_argument('--fair', default=False, help='use fair_loss')
 
 args = parser.parse_args()
 
@@ -100,6 +100,13 @@ test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_si
 def train(args, model, device, train_loader, optimizer, epoch, logger):
     model.train()
     start = time.time()
+
+    # 初始化各 label 的 rep 的中心
+    rep_list = []
+    rep_tmp, _ = model(torch.zeros([args.batch_size, 3, 40, 40]))
+    for i in range(10):
+        rep_list.append(torch.zeros_like(rep_tmp))
+
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.cuda(), target.cuda()
 
@@ -122,7 +129,41 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
                             step_size=args.step_size, epsilon=args.epsilon,
                             perturb_steps=args.num_steps, beta=args.beta)
         elif args.AT_method == 'ST':
-            loss = F.cross_entropy(model(data), target)
+            _, out = model(data)
+            loss = F.cross_entropy(out, target)
+
+        if args.fair == True:
+            # 得到 input 的 rep，归一化并展开
+            rep, _ = model(data)
+            B, C, H, W = rep.shape()
+            rep = rep.reshape([B, -1]) # [B,M]
+            rep = nn.functional.normalize(rep, dim=1)
+
+            # 更新各 label 的 rep 的中心
+            rep_list
+
+            # 得到 input 对应的 rep, 组成 rep_list_tmp
+            rep_list_tmp = rep_list  # [B,M]
+            rep_list_tmp = nn.functional.normalize(rep_list_tmp, dim=1)
+            # 计算 input 同对应 rep_label 余弦相似度
+            l_pos = torch.einsum('nc,nc->n', [rep, rep_list_tmp]).unsqueeze(-1)
+
+            # 计算 input 同其他 rep_label 计算余弦相似度
+            l_neg = torch.einsum('nc,kc->nk', [rep, rep_list_tmp.clone().detach()])
+            # logits: [N, 1+K]
+            logits = torch.cat([l_pos, l_neg], dim=1)
+
+            # apply temperature
+            T = args.T
+            logits /= T
+
+            # labels: positive key indicators
+
+            labels = torch.zeros(logits.shape[0], dtype=torch.long).cuda()
+            fair_loss = F.cross_entropy(logits, labels)
+
+            loss = loss + fair_loss
+
         loss.backward()
         optimizer.step()
 
