@@ -25,8 +25,10 @@ def trades_loss(model, x_natural, y, optimizer, step_size=0.003, epsilon=0.031, 
         for _ in range(perturb_steps):
             x_adv.requires_grad_()
             with torch.enable_grad():
-                loss_kl = criterion_kl(F.log_softmax(model(x_adv), dim=1),
-                                       F.softmax(model(x_natural), dim=1))
+                _, out_adv = model(x_adv)
+                _, out_nat = model(x_natural)
+                loss_kl = criterion_kl(F.log_softmax(out_adv, dim=1),
+                                       F.softmax(out_nat, dim=1))
             grad = torch.autograd.grad(loss_kl, [x_adv])[0]
 
             # loss_kl.backward()
@@ -72,9 +74,11 @@ def trades_loss(model, x_natural, y, optimizer, step_size=0.003, epsilon=0.031, 
     # zero gradient
     optimizer.zero_grad()
     # calculate robust loss
-    logits = model(x_natural)
+    _, logits = model(x_natural)
     loss_natural = F.cross_entropy(logits, y)
-    loss_robust = (1.0 / batch_size) * criterion_kl(F.log_softmax(model(x_adv), dim=1),
-                                                    F.softmax(model(x_natural), dim=1))
+    _, out_adv = model(x_adv)
+    _, out_nat = model(x_natural)
+    loss_robust = (1.0 / batch_size) * criterion_kl(F.log_softmax(out_adv, dim=1),
+                                                    F.softmax(out_nat, dim=1))
     loss = loss_natural + beta * loss_robust
     return loss

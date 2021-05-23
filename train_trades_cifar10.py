@@ -30,7 +30,8 @@ parser.add_argument('--widen_factor', type=int, default=10, metavar='N',
 parser.add_argument('--droprate', type=float, default=0.0, metavar='N',
                     help='model droprate (default: 0.0)')
 
-parser.add_argument('--AT-method', type=str, default='TRADES', help='AT method')
+parser.add_argument('--AT-method', type=str, default='TRADES',
+                    help='AT method', choices=['TRADES', 'PGD', 'ST'])
 # parser.add_argument('--epochs', type=int, default=76, metavar='N',
 parser.add_argument('--epochs', type=int, default=100, metavar='N',
                     help='number of epochs to train')
@@ -60,7 +61,8 @@ parser.add_argument('--save-freq', '-s', default=1, type=int, metavar='N',
                     help='save frequency')
 parser.add_argument('--model', default='wideresnet',
                     help='AT model name')
-parser.add_argument('--fair', default=False, help='use fair_loss')
+parser.add_argument('--fair', default=False, type=bool, help='use fair_loss')
+parser.add_argument('--T', default=0.07, type=float, help='Temperature ')
 
 args = parser.parse_args()
 
@@ -68,11 +70,11 @@ os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
 print(args)
 # settings save model path
 factors = 'e' + str(args.epsilon) + '_depth' + str(args.depth) + '_' + 'widen' + str(args.widen_factor) + '_' + 'drop' + str(args.droprate)
-model_dir = args.model_dir + args.model + '/AT/'
-if args.AT_method == 'PGD':
-    model_dir = model_dir + 'PGD/' + factors
+if args.fair:
+    model_dir = args.model_dir + args.model + '/' + args.AT_method + '_fair' + '/' + factors
 else:
-    model_dir = model_dir + factors
+    model_dir = args.model_dir + args.model + '/' + args.AT_method + '/' + factors
+print(model_dir)
 if not os.path.exists(model_dir):
     os.makedirs(model_dir)
 
@@ -103,9 +105,11 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
 
     # 初始化各 label 的 rep 的中心
     rep_list = []
-    rep_tmp, _ = model(torch.zeros([args.batch_size, 3, 40, 40]))
+    rep_tmp, _ = model(torch.zeros([1, 3, 32, 32]))
     for i in range(10):
         rep_list.append(torch.zeros_like(rep_tmp))
+    rep_label = torch.stack(rep_list, dim=0)
+    rep_label = rep_label.reshape([10, -1])
 
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.cuda(), target.cuda()
@@ -132,36 +136,74 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
             _, out = model(data)
             loss = F.cross_entropy(out, target)
 
+        # if args.fair == True:
+        #     # 得到 input 的 rep，归一化并展开
+        #     rep, _ = model(data)
+        #     B, C, H, W = rep.shape()
+        #     rep = rep.reshape([B, -1]) # [B,M]
+        #     rep = nn.functional.normalize(rep, dim=1)
+        #
+        #     # 更新各 label 的 rep 的中心
+        #     rep_list
+        #
+        #     # 得到 input 对应的 rep, 组成 rep_list_tmp
+        #     rep_list_tmp = rep_list  # [B,M]
+        #     rep_list_tmp = nn.functional.normalize(rep_list_tmp, dim=1)
+        #     # 计算 input 同对应 rep_label 余弦相似度
+        #     l_pos = torch.einsum('nc,nc->n', [rep, rep_list_tmp]).unsqueeze(-1)
+        #
+        #     # 计算 input 同其他 rep_label 计算余弦相似度
+        #     l_neg = torch.einsum('nc,kc->nk', [rep, rep_list_tmp.clone().detach()])
+        #     # logits: [N, 1+K]
+        #     logits = torch.cat([l_pos, l_neg], dim=1)
+        #
+        #     # apply temperature
+        #     T = args.T
+        #     logits /= T
+        #
+        #     # labels: positive key indicators
+        #
+        #     labels = torch.zeros(logits.shape[0], dtype=torch.long).cuda()
+        #     fair_loss = F.cross_entropy(logits, labels)
+        #
+        #     loss = loss + fair_loss
+
+        # 不调整顺序 这里只计算了 benign 的 rep
         if args.fair == True:
             # 得到 input 的 rep，归一化并展开
             rep, _ = model(data)
-            B, C, H, W = rep.shape()
-            rep = rep.reshape([B, -1]) # [B,M]
+            N, C, H, W = rep.size()
+            rep = rep.reshape([N, -1]) # [N,M] [128,40960]
+
+            # 只考虑 batch 内部
+            target_tmp = target.cpu().numpy()
+            for i in range(10):
+                # 获取 label i 数据的索引，找到对应的 rep
+                index = np.squeeze(np.argwhere(target_tmp == i))
+                index1 = torch.tensor(index).cuda()
+                rep_temp = torch.index_select(rep, 0, index1)
+
+                # 更新 label i 的中心
+                rep_label[i] = (rep_label[i] + rep_temp.mean(dim=0)) / 2
+
+
+            # 归一化，计算 input 同 rep_label 计算余弦相似度
             rep = nn.functional.normalize(rep, dim=1)
+            rep_label = nn.functional.normalize(rep_label, dim=1)
+            logits = torch.einsum('nm,km->nk', [rep, rep_label.clone().detach()]) # logits: [N, K]
 
-            # 更新各 label 的 rep 的中心
-            rep_list
-
-            # 得到 input 对应的 rep, 组成 rep_list_tmp
-            rep_list_tmp = rep_list  # [B,M]
-            rep_list_tmp = nn.functional.normalize(rep_list_tmp, dim=1)
-            # 计算 input 同对应 rep_label 余弦相似度
-            l_pos = torch.einsum('nc,nc->n', [rep, rep_list_tmp]).unsqueeze(-1)
-
-            # 计算 input 同其他 rep_label 计算余弦相似度
-            l_neg = torch.einsum('nc,kc->nk', [rep, rep_list_tmp.clone().detach()])
-            # logits: [N, 1+K]
-            logits = torch.cat([l_pos, l_neg], dim=1)
+            # # 更新各 label 的 rep 的中心
+            # # [K,M]  K 个 label
+            # for i in range(10):
+            #     rep_0 = rep[]
+            #     rep_tmpi = torch.mean(rep_0)
+            #     rep_label[i] = (rep_label[i] + rep_tmpi) / 2
 
             # apply temperature
-            T = args.T
-            logits /= T
+            logits /= args.T
 
             # labels: positive key indicators
-
-            labels = torch.zeros(logits.shape[0], dtype=torch.long).cuda()
-            fair_loss = F.cross_entropy(logits, labels)
-
+            fair_loss = F.cross_entropy(logits, target)
             loss = loss + fair_loss
 
         loss.backward()
@@ -185,7 +227,7 @@ def eval_train(model, device, train_loader, logger):
     with torch.no_grad():
         for data, target in train_loader:
             data, target = data.cuda(), target.cuda()
-            output = model(data)
+            _, output = model(data)
             train_loss += F.cross_entropy(output, target, size_average=False).item()
             pred = output.max(1, keepdim=True)[1]
             correct += pred.eq(target.view_as(pred)).sum().item()
@@ -204,7 +246,7 @@ def eval_test(model, device, test_loader, logger):
     with torch.no_grad():
         for data, target in test_loader:
             data, target = data.cuda(), target.cuda()
-            output = model(data)
+            _, output = model(data)
             test_loss += F.cross_entropy(output, target, size_average=False).item()
             pred = output.max(1, keepdim=True)[1]
             correct += pred.eq(target.view_as(pred)).sum().item()
