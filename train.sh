@@ -38,12 +38,39 @@
 #echo "结束训练......"
 
 # epsilon；248 服务器
+#echo "开始训练 1......"
+#python train_trades_cifar10.py --batch-size 192 --gpu-id 0,1,2 --epsilon 0.0078
+#wait
+#echo "开始训练 2......"
+#python train_trades_cifar10.py --batch-size 192 --gpu-id 0,1,2 --epsilon 0.0039
+#echo "结束训练......"
+
+#Fair ST（124）
+#echo "开始训练 1......"
+#python train_trades_cifar10.py --fair v1 --AT-method ST --batch-size 128 --T 0.1
+#wait
+#echo "开始训练 2......"
+#python train_trades_cifar10.py --fair v1 --AT-method ST --batch-size 128 --T 0.3
+#wait
+#echo "开始训练 3......"
+#python train_trades_cifar10.py --fair v1 --AT-method ST --batch-size 128 --T 0.5
+#wait
+#echo "开始训练 4......"
+#python train_trades_cifar10.py --fair v1 --AT-method ST --batch-size 128 --T 0.8
+#echo "结束训练......"
+
+#Fair ST（248）
 echo "开始训练 1......"
-python train_trades_cifar10.py --batch-size 192 --gpu-id 0,1,2 --epsilon 0.0078
+python train_trades_cifar10.py --fair v1 --AT-method ST --batch-size 128 --T 0.005
 wait
 echo "开始训练 2......"
-python train_trades_cifar10.py --batch-size 192 --gpu-id 0,1,2 --epsilon 0.0039
+python train_trades_cifar10.py --fair v1 --AT-method ST --batch-size 128 --T 0.01
+wait
+echo "开始训练 3......"
+python train_trades_cifar10.py --fair v1 --AT-method ST --batch-size 128 --T 0.02
 echo "结束训练......"
+
+
 
 
 

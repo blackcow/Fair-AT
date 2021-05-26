@@ -57,12 +57,13 @@ parser.add_argument('--log-interval', type=int, default=100, metavar='N',
                     help='how many batches to wait before logging training status')
 parser.add_argument('--model-dir', default='./model-cifar-wideResNet/',
                     help='directory of model for saving checkpoint')
-parser.add_argument('--save-freq', '-s', default=1, type=int, metavar='N',
+parser.add_argument('--save-freq', '-s', default=10, type=int, metavar='N',
                     help='save frequency')
 parser.add_argument('--model', default='wideresnet',
                     help='AT model name')
-parser.add_argument('--fair', default=False, type=bool, help='use fair_loss')
+parser.add_argument('--fair', type=str, choices=['v1', 'v2', 'v3', 'v4'], help='use fair_loss')
 parser.add_argument('--T', default=0.07, type=float, help='Temperature ')
+parser.add_argument('--lamda', default=10, type=int, help='lamda of fairloss ')
 
 args = parser.parse_args()
 
@@ -70,8 +71,9 @@ os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
 print(args)
 # settings save model path
 factors = 'e' + str(args.epsilon) + '_depth' + str(args.depth) + '_' + 'widen' + str(args.widen_factor) + '_' + 'drop' + str(args.droprate)
-if args.fair:
-    model_dir = args.model_dir + args.model + '/' + args.AT_method + '_fair' + '/' + factors
+if args.fair is not None:
+    model_dir = args.model_dir + args.model + '/' + args.AT_method +\
+                '_fair_' + args.fair + '_T' + str(args.T)+'_L' + str(args.lamda) + '/' + factors
 else:
     model_dir = args.model_dir + args.model + '/' + args.AT_method + '/' + factors
 print(model_dir)
@@ -80,7 +82,7 @@ if not os.path.exists(model_dir):
 
 use_cuda = not args.no_cuda and torch.cuda.is_available()
 device = torch.device("cuda" if use_cuda else "cpu")
-kwargs = {'num_workers': 8, 'pin_memory': True} if use_cuda else {}
+kwargs = {'num_workers': 4, 'pin_memory': True} if use_cuda else {}
 
 # setup data loader
 transform_train = transforms.Compose([
@@ -98,6 +100,11 @@ train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size,
 testset = torchvision.datasets.CIFAR10(root='../data', train=False, download=True, transform=transform_test)
 test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
 
+# 返回更新的中心点，总计数
+def update(rep_label, rep_temp, rep_num, batch_num):
+    # rep_label = (rep_label * rep_num + rep_temp.sum())/(rep_num+batch_num)
+    rep_label = rep_num / (rep_num + batch_num) * rep_label + rep_temp.sum() / (rep_num + batch_num)
+    return rep_label
 
 def train(args, model, device, train_loader, optimizer, epoch, logger):
     model.train()
@@ -110,6 +117,7 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
         rep_list.append(torch.zeros_like(rep_tmp))
     rep_label = torch.stack(rep_list, dim=0)
     rep_label = rep_label.reshape([10, -1])
+    rep_num = torch.zeros([10])
 
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.cuda(), target.cuda()
@@ -120,14 +128,9 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
 
         # calculate robust loss
         if args.AT_method == 'TRADES':
-            loss = trades_loss(model=model,
-                           x_natural=data,
-                           y=target,
-                           optimizer=optimizer,
-                           step_size=args.step_size,
-                           epsilon=args.epsilon,
-                           perturb_steps=args.num_steps,
-                           beta=args.beta)
+            loss = trades_loss(model=model, x_natural=data, y=target,
+                           optimizer=optimizer, step_size=args.step_size, epsilon=args.epsilon,
+                           perturb_steps=args.num_steps, beta=args.beta)
         elif args.AT_method == 'PGD':
             loss = pgd_loss(model=model, X=data, y=target, optimizer=optimizer,
                             step_size=args.step_size, epsilon=args.epsilon,
@@ -169,11 +172,11 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
         #     loss = loss + fair_loss
 
         # 不调整顺序 这里只计算了 benign 的 rep
-        if args.fair == True:
+        if args.fair is not None:
             # 得到 input 的 rep，归一化并展开
             rep, _ = model(data)
             N, C, H, W = rep.size()
-            rep = rep.reshape([N, -1]) # [N,M] [128,40960]
+            rep = rep.reshape([N, -1])  # [N,M] [128,40960]
 
             # 只考虑 batch 内部
             target_tmp = target.cpu().numpy()
@@ -183,8 +186,17 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
                 index1 = torch.tensor(index).cuda()
                 rep_temp = torch.index_select(rep, 0, index1)
 
+                # rep_label [10, 40960]
                 # 更新 label i 的中心
-                rep_label[i] = (rep_label[i] + rep_temp.mean(dim=0)) / 2
+                # fair v1：新的中心点，占 50%的权重；如果该 batch 中没有样本，则变成原来的一半
+                if args.fair == 'v1':
+                    rep_label[i] = (rep_label[i] + rep_temp.mean(dim=0)) / 2
+
+                # fair v2：最终每个样本，占中心点的 1/n 的权重
+                if args.fair == 'v2':
+                    batch_num, _ = rep_temp.size()
+                    rep_label[i] = update(rep_label[i], rep_temp, rep_num[i], batch_num) # 更新中心点
+                    rep_num[i] += batch_num
 
 
             # 归一化，计算 input 同 rep_label 计算余弦相似度
@@ -192,19 +204,14 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
             rep_label = nn.functional.normalize(rep_label, dim=1)
             logits = torch.einsum('nm,km->nk', [rep, rep_label.clone().detach()]) # logits: [N, K]
 
-            # # 更新各 label 的 rep 的中心
-            # # [K,M]  K 个 label
-            # for i in range(10):
-            #     rep_0 = rep[]
-            #     rep_tmpi = torch.mean(rep_0)
-            #     rep_label[i] = (rep_label[i] + rep_tmpi) / 2
-
             # apply temperature
             logits /= args.T
 
             # labels: positive key indicators
             fair_loss = F.cross_entropy(logits, target)
-            loss = loss + fair_loss
+            # loss = loss + fair_loss
+            lamda = args.lamda
+            loss = loss + lamda * fair_loss
 
         loss.backward()
         optimizer.step()
@@ -214,11 +221,6 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
             logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset),
                        100. * batch_idx / len(train_loader), loss.item()))
-
-            # end = time.time()
-            # tm = (end - start) / 60
-            # start = time.time()
-            # print('时间(分钟):' + str(tm))
 
 def eval_train(model, device, train_loader, logger):
     model.eval()
@@ -322,11 +324,11 @@ def main():
         writer.add_scalars(graph_name, {'training_acc': training_accuracy, 'test_accuracy': test_accuracy}, epoch)
 
         # save checkpoint
-        if epoch % args.save_freq == 0:
+        if epoch % args.save_freq == 0 or epoch == 74 or epoch == 75 or epoch == 76:
             torch.save(model.state_dict(),
                        os.path.join(model_dir, 'model-wideres-epoch{}.pt'.format(epoch)))
-            torch.save(optimizer.state_dict(),
-                       os.path.join(model_dir, 'opt-wideres-checkpoint_epoch{}.tar'.format(epoch)))
+            # torch.save(optimizer.state_dict(),
+            #            os.path.join(model_dir, 'opt-wideres-checkpoint_epoch{}.tar'.format(epoch)))
 
     writer.close()
 if __name__ == '__main__':
