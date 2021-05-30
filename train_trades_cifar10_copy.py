@@ -43,7 +43,7 @@ parser.add_argument('--momentum', type=float, default=0.9, metavar='M',
                     help='SGD momentum')
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='disables CUDA training')
-parser.add_argument('--gpu-id', type=str, default='0,1,2', help='gpu_id')
+parser.add_argument('--gpu-id', type=str, default='0,1', help='gpu_id')
 parser.add_argument('--epsilon', default=0.031, type=float, help='perturbation')
 parser.add_argument('--num-steps', default=10,
                     help='perturb number of steps')
@@ -62,8 +62,8 @@ parser.add_argument('--save-freq', '-s', default=10, type=int, metavar='N',
 parser.add_argument('--model', default='wideresnet',
                     help='AT model name')
 parser.add_argument('--fair', type=str, help='use fair_loss, choices=[v1, v2, v3, v4]')
-parser.add_argument('--T', default=0.1, type=float, help='Temperature, default=0.07')
-parser.add_argument('--lamda', default=1, type=int, help='lamda of fairloss, default=10')
+parser.add_argument('--T', default=0.07, type=float, help='Temperature, default=0.07')
+parser.add_argument('--lamda', default=10, type=int, help='lamda of fairloss, default=10')
 
 args = parser.parse_args()
 
@@ -99,35 +99,6 @@ trainset = torchvision.datasets.CIFAR10(root='../data', train=True, download=Tru
 train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
 testset = torchvision.datasets.CIFAR10(root='../data', train=False, download=True, transform=transform_test)
 test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
-
-
-# v1-v3 使用的 fair loss，input 同 label 中心近
-def FairLoss1(rep, rep_label, target):
-    # 归一化，计算 input 同 rep_label 计算余弦相似度
-    rep = nn.functional.normalize(rep, dim=1)
-    rep_label_norm = nn.functional.normalize(rep_label, dim=1)
-    logits = torch.einsum('nm,km->nk', [rep, rep_label_norm.clone().detach()])  # logits: [N, K]
-
-    # apply temperature
-    logits /= args.T
-
-    # labels: positive key indicators
-    fair_loss = F.cross_entropy(logits, target)
-    return fair_loss
-
-class FairLoss2(nn.Module):
-    def __init__(self, lamda):
-        super(FairLoss2, self).__init__()
-        self.lamda = lamda
-
-    def forward(self, rep):
-        # [10, H*W]
-        logits = torch.mm(rep, torch.transpose(rep, 0, 1))  # [10,HW]*[HW,10]=[10,10]
-        logits = logits - torch.diag_embed(torch.diag(logits))  # 去掉对角线的 1
-        logits = logits.abs().sum()
-        # sim = F.cosine_similarity(rep, rep.clone().detach())
-        return logits * self.lamda
-        # return torch.ones(1).requires_grad_(True)
 
 # 返回更新的中心点，总计数
 def update(rep_label, rep_temp, rep_num, batch_num):
@@ -166,7 +137,7 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
         # 不调整顺序 这里只计算了 benign 的 rep
         elif args.AT_method == 'ST' and args.fair is not None:
             rep, out = model(data)
-            loss = F.cross_entropy(out, target)
+            # loss = F.cross_entropy(out, target)
             # 得到 input 的 rep，归一化并展开
             N, C, H, W = rep.size()
             rep = rep.reshape([N, -1])  # [N,M] [128,40960]
@@ -179,13 +150,14 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
                 index1 = torch.tensor(index).cuda()
                 rep_temp = torch.index_select(rep, 0, index1)
 
+                # [N,10,40960]
+                # nn.BatchNorm2d(rep_temp)
+                # rep_temp1 = F.batch_norm(rep_temp)
+
                 # 更新 label i 的中心, rep_label [10, 40960]
                 # fair v1：新的中心点，占 50%的权重；如果该 batch 中没有样本，则变成原来的一半
                 if args.fair == 'v1':
                     rep_label[i] = (rep_label[i] + rep_temp.mean(dim=0)) / 2
-
-                    CEloss = F.cross_entropy(out, target)
-                    loss = CEloss + args.lamda * FairLoss1(rep, rep_label, target)
 
                 # fair v2：最终每个样本，占中心点的 1/n 的权重
                 if args.fair == 'v2':
@@ -193,30 +165,38 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
                     rep_label[i] = update(rep_label[i], rep_temp, rep_num[i], batch_num) # 更新中心点
                     rep_num[i] += batch_num
 
-                    CEloss = F.cross_entropy(out, target)
-                    loss = CEloss + args.lamda * FairLoss1(rep, rep_label, target)
-
                 # 同 BN 一致，之前的占 90%，新的占 10%
                 if args.fair == 'v3':
                     rep_label[i] = rep_label[i] * 0.9 + rep_temp.mean(dim=0) * 0.1
 
-                    CEloss = F.cross_entropy(out, target)
-                    loss = CEloss + args.lamda * FairLoss1(rep, rep_label, target)
-
                 # 只看 label 中心点之间的距离，作为 loss
-                if args.fair == 'v4':  # 目前 rep 的距离看来，没达到与其效果
+                if args.fair == 'v4':
                     rep_label[i] = rep_label[i] * 0.9 + rep_temp.mean(dim=0) * 0.1
-                    # 归一化，计算 input 同 rep_label 计算余弦相似度
-                    rep_label = rep_label.detach()
-                    rep_label_norm = nn.functional.normalize(rep_label, dim=1)
 
-                    # 针对 label 中心互相远离的 loss
-                    fl = FairLoss2(args.lamda)
-                    CEloss = F.cross_entropy(out, target)
-                    loss = CEloss + fl(rep_label_norm)
-                    # 尝试不加 CELoss 单独 train fl
-                    # CEloss 换成别的，类间 min，类内 max
+            # 归一化，计算 input 同 rep_label 计算余弦相似度
+            # rep = nn.functional.normalize(rep, dim=1)
+            rep_label = nn.functional.normalize(rep_label, dim=1)
+            # # v1-v3 使用的 fair loss
+            # logits = torch.einsum('nm,km->nk', [rep, rep_label.clone().detach()]) # logits: [N, K]
+            #
+            # # apply temperature
+            # logits /= args.T
+            #
+            # # labels: positive key indicators
+            # fair_loss = F.cross_entropy(logits, target)
 
+            # 对于 v4
+            # rep_det = rep_label.clone().detach()
+            rep_det = rep_label
+            # loss = rep_det.sum()
+            # loss.backward()
+            logits = torch.mm(rep_det, torch.transpose(rep_det, 0, 1))
+            logits = logits - torch.diag_embed(logits)  # 去掉对角线的 1
+            fair_loss = logits.abs().sum()
+        #
+        #     print()
+            loss = loss + args.lamda * fair_loss
+        #     loss = args.lamda * fair_loss
         loss.backward()
         optimizer.step()
 

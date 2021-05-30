@@ -43,7 +43,7 @@ parser.add_argument('--momentum', type=float, default=0.9, metavar='M',
                     help='SGD momentum')
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='disables CUDA training')
-parser.add_argument('--gpu-id', type=str, default='0,1,2', help='gpu_id')
+parser.add_argument('--gpu-id', type=str, default='0,1', help='gpu_id')
 parser.add_argument('--epsilon', default=0.031, type=float, help='perturbation')
 parser.add_argument('--num-steps', default=10,
                     help='perturb number of steps')
@@ -61,19 +61,20 @@ parser.add_argument('--save-freq', '-s', default=10, type=int, metavar='N',
                     help='save frequency')
 parser.add_argument('--model', default='wideresnet',
                     help='AT model name')
-parser.add_argument('--fair', type=str, help='use fair_loss, choices=[v1, v2, v3, v4]')
-parser.add_argument('--T', default=0.1, type=float, help='Temperature, default=0.07')
-parser.add_argument('--lamda', default=1, type=int, help='lamda of fairloss, default=10')
+parser.add_argument('--fair', type=str, choices=['v1', 'v2', 'v3', 'v4'], help='use fair_loss')
+parser.add_argument('--T', default=0.07, type=float, help='Temperature ')
+parser.add_argument('--lamda', default=10, type=int, help='lamda of fairloss ')
 
 args = parser.parse_args()
 
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
 print(args)
 # settings save model path
-factors = 'e' + str(args.epsilon) + '_depth' + str(args.depth) + '_' + 'widen' + str(args.widen_factor) + '_' + 'drop' + str(args.droprate)
+factors = 'e' + str(args.epsilon) + '_depth' + str(args.depth) + '_' + 'widen' + str(
+    args.widen_factor) + '_' + 'drop' + str(args.droprate)
 if args.fair is not None:
-    model_dir = args.model_dir + args.model + '/' + args.AT_method +\
-                '_fair_' + args.fair + '_T' + str(args.T)+'_L' + str(args.lamda) + '/' + factors
+    model_dir = args.model_dir + args.model + '/' + args.AT_method + \
+                '_fair_' + args.fair + '_T' + str(args.T) + '_L' + str(args.lamda) + '/' + factors
 else:
     model_dir = args.model_dir + args.model + '/' + args.AT_method + '/' + factors
 print(model_dir)
@@ -101,46 +102,24 @@ testset = torchvision.datasets.CIFAR10(root='../data', train=False, download=Tru
 test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
 
 
-# v1-v3 使用的 fair loss，input 同 label 中心近
-def FairLoss1(rep, rep_label, target):
-    # 归一化，计算 input 同 rep_label 计算余弦相似度
-    rep = nn.functional.normalize(rep, dim=1)
-    rep_label_norm = nn.functional.normalize(rep_label, dim=1)
-    logits = torch.einsum('nm,km->nk', [rep, rep_label_norm.clone().detach()])  # logits: [N, K]
-
-    # apply temperature
-    logits /= args.T
-
-    # labels: positive key indicators
-    fair_loss = F.cross_entropy(logits, target)
-    return fair_loss
-
-class FairLoss2(nn.Module):
-    def __init__(self, lamda):
-        super(FairLoss2, self).__init__()
-        self.lamda = lamda
-
-    def forward(self, rep):
-        # [10, H*W]
-        logits = torch.mm(rep, torch.transpose(rep, 0, 1))  # [10,HW]*[HW,10]=[10,10]
-        logits = logits - torch.diag_embed(torch.diag(logits))  # 去掉对角线的 1
-        logits = logits.abs().sum()
-        # sim = F.cosine_similarity(rep, rep.clone().detach())
-        return logits * self.lamda
-        # return torch.ones(1).requires_grad_(True)
-
 # 返回更新的中心点，总计数
 def update(rep_label, rep_temp, rep_num, batch_num):
     # rep_label = (rep_label * rep_num + rep_temp.sum())/(rep_num+batch_num)
     rep_label = rep_num / (rep_num + batch_num) * rep_label + rep_temp.sum() / (rep_num + batch_num)
     return rep_label
 
+
 def train(args, model, device, train_loader, optimizer, epoch, logger):
     model.train()
     start = time.time()
 
-    # 初始化各 label 的 rep 的中心 [10, 640, 8, 8]
-    rep_label = torch.zeros([10, 40960]).cuda()
+    # 初始化各 label 的 rep 的中心
+    rep_list = []
+    rep_tmp, _ = model(torch.zeros([1, 3, 32, 32]))
+    for i in range(10):
+        rep_list.append(torch.zeros_like(rep_tmp))
+    rep_label = torch.stack(rep_list, dim=0)
+    rep_label = rep_label.reshape([10, -1])
     rep_num = torch.zeros([10])
 
     for batch_idx, (data, target) in enumerate(train_loader):
@@ -153,21 +132,52 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
         # calculate robust loss
         if args.AT_method == 'TRADES':
             loss = trades_loss(model=model, x_natural=data, y=target,
-                           optimizer=optimizer, step_size=args.step_size, epsilon=args.epsilon,
-                           perturb_steps=args.num_steps, beta=args.beta)
+                               optimizer=optimizer, step_size=args.step_size, epsilon=args.epsilon,
+                               perturb_steps=args.num_steps, beta=args.beta)
         elif args.AT_method == 'PGD':
             loss = pgd_loss(model=model, X=data, y=target, optimizer=optimizer,
                             step_size=args.step_size, epsilon=args.epsilon,
                             perturb_steps=args.num_steps, beta=args.beta)
-        elif args.AT_method == 'ST' and args.fair is None:
+        elif args.AT_method == 'ST':
             _, out = model(data)
             loss = F.cross_entropy(out, target)
 
+        # if args.fair == True:
+        #     # 得到 input 的 rep，归一化并展开
+        #     rep, _ = model(data)
+        #     B, C, H, W = rep.shape()
+        #     rep = rep.reshape([B, -1]) # [B,M]
+        #     rep = nn.functional.normalize(rep, dim=1)
+        #
+        #     # 更新各 label 的 rep 的中心
+        #     rep_list
+        #
+        #     # 得到 input 对应的 rep, 组成 rep_list_tmp
+        #     rep_list_tmp = rep_list  # [B,M]
+        #     rep_list_tmp = nn.functional.normalize(rep_list_tmp, dim=1)
+        #     # 计算 input 同对应 rep_label 余弦相似度
+        #     l_pos = torch.einsum('nc,nc->n', [rep, rep_list_tmp]).unsqueeze(-1)
+        #
+        #     # 计算 input 同其他 rep_label 计算余弦相似度
+        #     l_neg = torch.einsum('nc,kc->nk', [rep, rep_list_tmp.clone().detach()])
+        #     # logits: [N, 1+K]
+        #     logits = torch.cat([l_pos, l_neg], dim=1)
+        #
+        #     # apply temperature
+        #     T = args.T
+        #     logits /= T
+        #
+        #     # labels: positive key indicators
+        #
+        #     labels = torch.zeros(logits.shape[0], dtype=torch.long).cuda()
+        #     fair_loss = F.cross_entropy(logits, labels)
+        #
+        #     loss = loss + fair_loss
+
         # 不调整顺序 这里只计算了 benign 的 rep
-        elif args.AT_method == 'ST' and args.fair is not None:
-            rep, out = model(data)
-            loss = F.cross_entropy(out, target)
+        if args.fair is not None:
             # 得到 input 的 rep，归一化并展开
+            rep, _ = model(data)
             N, C, H, W = rep.size()
             rep = rep.reshape([N, -1])  # [N,M] [128,40960]
 
@@ -179,43 +189,35 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
                 index1 = torch.tensor(index).cuda()
                 rep_temp = torch.index_select(rep, 0, index1)
 
-                # 更新 label i 的中心, rep_label [10, 40960]
+                # rep_label [10, 40960]
+                # 更新 label i 的中心
                 # fair v1：新的中心点，占 50%的权重；如果该 batch 中没有样本，则变成原来的一半
                 if args.fair == 'v1':
                     rep_label[i] = (rep_label[i] + rep_temp.mean(dim=0)) / 2
 
-                    CEloss = F.cross_entropy(out, target)
-                    loss = CEloss + args.lamda * FairLoss1(rep, rep_label, target)
-
                 # fair v2：最终每个样本，占中心点的 1/n 的权重
                 if args.fair == 'v2':
                     batch_num, _ = rep_temp.size()
-                    rep_label[i] = update(rep_label[i], rep_temp, rep_num[i], batch_num) # 更新中心点
+                    rep_label[i] = update(rep_label[i], rep_temp, rep_num[i], batch_num)  # 更新中心点
                     rep_num[i] += batch_num
-
-                    CEloss = F.cross_entropy(out, target)
-                    loss = CEloss + args.lamda * FairLoss1(rep, rep_label, target)
 
                 # 同 BN 一致，之前的占 90%，新的占 10%
                 if args.fair == 'v3':
                     rep_label[i] = rep_label[i] * 0.9 + rep_temp.mean(dim=0) * 0.1
 
-                    CEloss = F.cross_entropy(out, target)
-                    loss = CEloss + args.lamda * FairLoss1(rep, rep_label, target)
+            # 归一化，计算 input 同 rep_label 计算余弦相似度
+            rep = nn.functional.normalize(rep, dim=1)
+            rep_label = nn.functional.normalize(rep_label, dim=1)
+            logits = torch.einsum('nm,km->nk', [rep, rep_label.clone().detach()])  # logits: [N, K]
 
-                # 只看 label 中心点之间的距离，作为 loss
-                if args.fair == 'v4':  # 目前 rep 的距离看来，没达到与其效果
-                    rep_label[i] = rep_label[i] * 0.9 + rep_temp.mean(dim=0) * 0.1
-                    # 归一化，计算 input 同 rep_label 计算余弦相似度
-                    rep_label = rep_label.detach()
-                    rep_label_norm = nn.functional.normalize(rep_label, dim=1)
+            # apply temperature
+            logits /= args.T
 
-                    # 针对 label 中心互相远离的 loss
-                    fl = FairLoss2(args.lamda)
-                    CEloss = F.cross_entropy(out, target)
-                    loss = CEloss + fl(rep_label_norm)
-                    # 尝试不加 CELoss 单独 train fl
-                    # CEloss 换成别的，类间 min，类内 max
+            # labels: positive key indicators
+            fair_loss = F.cross_entropy(logits, target)
+            # loss = loss + fair_loss
+            lamda = args.lamda
+            loss = loss + lamda * fair_loss
 
         loss.backward()
         optimizer.step()
@@ -225,6 +227,7 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
             logger.info('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset),
                        100. * batch_idx / len(train_loader), loss.item()))
+
 
 def eval_train(model, device, train_loader, logger):
     model.eval()
@@ -277,7 +280,6 @@ def adjust_learning_rate(optimizer, epoch):
         param_group['lr'] = lr
 
 
-
 def get_logger(filename, verbosity=1, name=None):
     level_dict = {0: logging.DEBUG, 1: logging.INFO, 2: logging.WARNING}
     formatter = logging.Formatter("%(message)s")
@@ -294,6 +296,7 @@ def get_logger(filename, verbosity=1, name=None):
 
     return logger
 
+
 def main():
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
@@ -302,7 +305,8 @@ def main():
     writer = SummaryWriter(comment='test_comment', filename_suffix="test_suffix")
     # init model, ResNet18() can be also used here for training
     if args.model == 'wideresnet':
-        model = nn.DataParallel(WideResNet(depth=args.depth, widen_factor=args.widen_factor, dropRate=args.droprate)).cuda()
+        model = nn.DataParallel(
+            WideResNet(depth=args.depth, widen_factor=args.widen_factor, dropRate=args.droprate)).cuda()
     elif args.model == 'densenet':
         model = nn.DataParallel(DenseNet121().cuda())
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
@@ -317,7 +321,7 @@ def main():
         train(args, model, device, train_loader, optimizer, epoch, logger)
         # train(args, model, device, train_loader, optimizer, epoch)
         end = time.time()
-        tm = (end - start)/60
+        tm = (end - start) / 60
         print('时间(分钟):' + str(tm))
         # evaluation on natural examples
         print('================================================================')
@@ -335,5 +339,7 @@ def main():
             #            os.path.join(model_dir, 'opt-wideres-checkpoint_epoch{}.tar'.format(epoch)))
 
     writer.close()
+
+
 if __name__ == '__main__':
     main()
