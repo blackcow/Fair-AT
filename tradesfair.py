@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 import torch.optim as optim
+from fair import fair_loss
 
 
 def squared_l2_norm(x):
@@ -14,7 +15,7 @@ def l2_norm(x):
     return squared_l2_norm(x).sqrt()
 
 
-def trades_loss(model, x_natural, y, optimizer, step_size=0.003, epsilon=0.031, perturb_steps=10, beta=1.0, distance='l_inf'):
+def trades_fair_loss(args, model, x_natural, y, optimizer, rep_center, fair, step_size=0.003, epsilon=0.031, perturb_steps=10, beta=1.0, distance='l_inf'):
     # define KL-loss
     criterion_kl = nn.KLDivLoss(size_average=False)
     model.eval()
@@ -77,8 +78,10 @@ def trades_loss(model, x_natural, y, optimizer, step_size=0.003, epsilon=0.031, 
     # calculate robust loss
     _, logits_x = model(x_natural)
     _, logits_adv = model(x_adv)
-    loss_natural = F.cross_entropy(logits_x, y)
+    # loss_natural = F.cross_entropy(logits_x, y)
+    rep_center, loss_natural = fair_loss(args=args, model=model, x=x_natural,
+                                         target=y, rep_center=rep_center, fair=fair)
     loss_robust = (1.0 / batch_size) * criterion_kl(F.log_softmax(logits_adv, dim=1),
                                                     F.softmax(logits_x, dim=1))
     loss = loss_natural + beta * loss_robust
-    return loss
+    return rep_center, loss

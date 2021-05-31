@@ -1,3 +1,4 @@
+# Fair ST 版本 5.31 日版本
 from __future__ import print_function
 import os
 import argparse
@@ -14,7 +15,6 @@ from models.wideresnet import *
 from models.densenet import *
 from models.resnet import *
 from trades import trades_loss
-from tradesfair import trades_fair_loss
 from pgd import pgd_loss
 from torch.utils.tensorboard import SummaryWriter
 
@@ -218,11 +218,7 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
         # loss = F.cross_entropy(model(data), target)
 
         # calculate robust loss
-        if args.AT_method == 'TRADES' and args.fair is not None:
-            rep_center, loss = trades_fair_loss(args=args, model=model, x_natural=data, y=target,
-                               optimizer=optimizer, rep_center=rep_center, step_size=args.step_size, epsilon=args.epsilon,
-                               perturb_steps=args.num_steps, beta=args.beta, fair=args.fair)
-        elif args.AT_method == 'TRADES':
+        if args.AT_method == 'TRADES':
             loss = trades_loss(model=model, x_natural=data, y=target,
                            optimizer=optimizer, step_size=args.step_size, epsilon=args.epsilon,
                            perturb_steps=args.num_steps, beta=args.beta)
@@ -244,7 +240,6 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
 
             # 只考虑 batch 内部
             target_tmp = target.cpu().numpy()
-            # 逻辑好像不对
             for i in range(10):
                 # 获取 label i 数据的索引，找到对应的 rep
                 index = np.squeeze(np.argwhere(target_tmp == i))
@@ -256,36 +251,44 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
                 if args.fair == 'v1':
                     rep_center[i] = (rep_center[i] + rep_temp.mean(dim=0)) / 2
 
+                    CEloss = F.cross_entropy(out, target)
+                    loss = CEloss + args.lamda * FairLoss1(rep, rep_center, target)
                 # 当前 batch 的 data 均值，作为中心点
-                elif args.fair == 'v1a':
+                if args.fair == 'v1a':
                     rep_center[i] = rep_temp.mean(dim=0)
 
+                    CEloss = F.cross_entropy(out, target)
+                    loss = CEloss + args.lamda * FairLoss1(rep, rep_center, target)
+
                 # fair v2：最终每个样本，占中心点的 1/n 的权重
-                elif args.fair == 'v2':
+                if args.fair == 'v2':
                     batch_num, _ = rep_temp.size()
                     rep_center[i] = update(rep_center[i], rep_temp, rep_num[i], batch_num) # 更新中心点
                     rep_num[i] += batch_num
 
+                    CEloss = F.cross_entropy(out, target)
+                    loss = CEloss + args.lamda * FairLoss1(rep, rep_center, target)
+
                 # 同 BN 一致，之前的占 90%，新的占 10%
-                elif args.fair == 'v3':
+                if args.fair == 'v3':
                     rep_center[i] = rep_center[i] * 0.9 + rep_temp.mean(dim=0) * 0.1
 
-            CEloss = F.cross_entropy(out, target)
-            loss = CEloss + args.lamda * FairLoss1(rep, rep_center, target)
+                    CEloss = F.cross_entropy(out, target)
+                    loss = CEloss + args.lamda * FairLoss1(rep, rep_center, target)
 
-                # # 只看 label 中心点之间的距离，作为 loss
-                # if args.fair == 'v4':  # 目前 rep 的距离看来，没达到与其效果
-                #     rep_center[i] = rep_center[i] * 0.9 + rep_temp.mean(dim=0) * 0.1
-                #     # 归一化，计算 input 同 rep_center 计算余弦相似度
-                #     rep_center = rep_center.detach()
-                #     rep_center_norm = nn.functional.normalize(rep_center, dim=1)
-                #
-                #     # 针对 label 中心互相远离的 loss
-                #     fl = FairLoss2(args.lamda)
-                #     CEloss = F.cross_entropy(out, target)
-                #     loss = CEloss + fl(rep_center_norm)
-                #     # 尝试不加 CELoss 单独 train fl
-                #     # CEloss 换成别的，类间 min，类内 max
+                # 只看 label 中心点之间的距离，作为 loss
+                if args.fair == 'v4':  # 目前 rep 的距离看来，没达到与其效果
+                    rep_center[i] = rep_center[i] * 0.9 + rep_temp.mean(dim=0) * 0.1
+                    # 归一化，计算 input 同 rep_center 计算余弦相似度
+                    rep_center = rep_center.detach()
+                    rep_center_norm = nn.functional.normalize(rep_center, dim=1)
+
+                    # 针对 label 中心互相远离的 loss
+                    fl = FairLoss2(args.lamda)
+                    CEloss = F.cross_entropy(out, target)
+                    loss = CEloss + fl(rep_center_norm)
+                    # 尝试不加 CELoss 单独 train fl
+                    # CEloss 换成别的，类间 min，类内 max
 
         loss.backward()
         optimizer.step()
