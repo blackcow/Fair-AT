@@ -221,7 +221,7 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
         if args.AT_method == 'TRADES' and args.fair is not None:
             rep_center, loss = trades_fair_loss(args=args, model=model, x_natural=data, y=target,
                                optimizer=optimizer, rep_center=rep_center, step_size=args.step_size, epsilon=args.epsilon,
-                               perturb_steps=args.num_steps, beta=args.beta, fair=args.fair)
+                               perturb_steps=args.num_steps, beta=args.beta)
         elif args.AT_method == 'TRADES':
             loss = trades_loss(model=model, x_natural=data, y=target,
                            optimizer=optimizer, step_size=args.step_size, epsilon=args.epsilon,
@@ -237,7 +237,6 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
         # 不调整顺序 这里只计算了 benign 的 rep
         elif args.AT_method == 'ST' and args.fair is not None:
             rep, out = model(data)
-            loss = F.cross_entropy(out, target)
             # 得到 input 的 rep，归一化并展开
             N, C, H, W = rep.size()
             rep = rep.reshape([N, -1])  # [N,M] [128,40960]

@@ -15,7 +15,7 @@ def l2_norm(x):
     return squared_l2_norm(x).sqrt()
 
 
-def trades_fair_loss(args, model, x_natural, y, optimizer, rep_center, fair, step_size=0.003, epsilon=0.031, perturb_steps=10, beta=1.0, distance='l_inf'):
+def trades_fair_loss(args, model, x_natural, y, optimizer, rep_center, step_size=0.003, epsilon=0.031, perturb_steps=10, beta=1.0, distance='l_inf'):
     # define KL-loss
     criterion_kl = nn.KLDivLoss(size_average=False)
     model.eval()
@@ -76,11 +76,10 @@ def trades_fair_loss(args, model, x_natural, y, optimizer, rep_center, fair, ste
     # zero gradient
     optimizer.zero_grad()
     # calculate robust loss
-    _, logits_x = model(x_natural)
+    rep, logits_x = model(x_natural)
     _, logits_adv = model(x_adv)
     # loss_natural = F.cross_entropy(logits_x, y)
-    rep_center, loss_natural = fair_loss(args=args, model=model, x=x_natural,
-                                         target=y, rep_center=rep_center, fair=fair)
+    rep_center, loss_natural = fair_loss(args=args, target=y, rep_center=rep_center, rep=rep, out=logits_x)
     loss_robust = (1.0 / batch_size) * criterion_kl(F.log_softmax(logits_adv, dim=1),
                                                     F.softmax(logits_x, dim=1))
     loss = loss_natural + beta * loss_robust
