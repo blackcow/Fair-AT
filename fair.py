@@ -13,7 +13,7 @@ def update(rep_center, rep_temp, rep_num, batch_num):
 
 
 # v1-v3 使用的 fair loss，input 同 label 中心近
-def FairLoss1(args, rep, rep_center, target):
+def FairLoss1(args, rep_center, rep, target):
     # 归一化，计算 input 同 rep_center 计算余弦相似度
     rep = nn.functional.normalize(rep, dim=1)
     rep_center = nn.functional.normalize(rep_center, dim=1)
@@ -81,8 +81,8 @@ def fair_loss(args, target, rep_center, rep, out):
             rep_center[1][i] = rep_center[1][i] * 0.9 + rep_robust_temp.mean(dim=0) * 0.1
 
     CEloss = F.cross_entropy(out, target)
-    loss = CEloss + args.lamda * FairLoss1(args, rep[0], rep_center[0], target) \
-           + args.lamda * FairLoss1(args, rep[1], rep_center[1], target)
+    loss = CEloss + args.lamda * FairLoss1(args, rep_center[0], rep[0], target) \
+           + args.lamda * FairLoss1(args, rep_center[1], rep[1], target)
 
         # # 只看 label 中心点之间的距离，作为 loss
         # if args.fair == 'v4':  # 目前 rep 的距离看来，没达到与其效果

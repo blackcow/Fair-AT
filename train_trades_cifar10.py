@@ -205,13 +205,11 @@ def update(rep_center, rep_temp, rep_num, batch_num):
 
 def train(args, model, device, train_loader, optimizer, epoch, logger):
     tmprep, _ = model(torch.zeros([20, 3, 32, 32]).cuda())
-    # _, C, H, W = tmprep.size()
-    C,H,W=512,8,8
+    _, C, H, W = tmprep.size()
+    # C,H,W=512,8,8
     model.train()
     start = time.time()
     # 初始化各 label 的 rep 的中心 [10, 640, 8, 8]
-    # rep_benign_center = torch.zeros([10, C*H*W]).cuda()
-    # rep_robust_center = torch.zeros([10, C*H*W]).cuda()
     rep_benign_center = torch.zeros([10, C * H * W]).cuda()
     rep_robust_center = torch.zeros([10, C * H * W]).cuda()
     rep_center = [rep_benign_center, rep_robust_center]
@@ -221,9 +219,6 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
         data, target = data.cuda(), target.cuda()
 
         optimizer.zero_grad()
-        # Standard Training Loss
-        # loss = F.cross_entropy(model(data), target)
-
         # calculate robust loss
         if args.AT_method == 'TRADES' and args.fair is not None:
             rep_center, loss = trades_fair_loss(args=args, model=model, x_natural=data, y=target,
