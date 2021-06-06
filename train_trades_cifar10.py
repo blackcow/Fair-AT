@@ -204,9 +204,9 @@ def update(rep_center, rep_temp, rep_num, batch_num):
     return rep_center
 
 def train(args, model, device, train_loader, optimizer, epoch, logger):
-    # tmprep, _ = model(torch.zeros([20, 3, 32, 32]).cuda())
-    # _, C, H, W = tmprep.size()
-    C,H,W=512,4,4
+    tmprep, _ = model(torch.zeros([20, 3, 32, 32]).cuda())
+    _, C, H, W = tmprep.size()
+    # C,H,W=512,4,4
     model.train()
     start = time.time()
     # 初始化各 label 的 rep 的中心 [10, 640, 8, 8]
