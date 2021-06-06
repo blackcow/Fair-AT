@@ -204,9 +204,9 @@ def update(rep_center, rep_temp, rep_num, batch_num):
     return rep_center
 
 def train(args, model, device, train_loader, optimizer, epoch, logger):
-    tmprep, _ = model(torch.zeros([20, 3, 32, 32]).cuda())
-    _, C, H, W = tmprep.size()
-    # C,H,W=512,8,8
+    # tmprep, _ = model(torch.zeros([20, 3, 32, 32]).cuda())
+    # _, C, H, W = tmprep.size()
+    C,H,W=512,4,4
     model.train()
     start = time.time()
     # 初始化各 label 的 rep 的中心 [10, 640, 8, 8]
@@ -309,8 +309,9 @@ def main():
         model = nn.DataParallel(WideResNet(depth=args.depth, widen_factor=args.widen_factor, dropRate=args.droprate)).cuda()
     elif args.model == 'densenet':
         model = nn.DataParallel(DenseNet121().cuda())
-    elif args.model == 'preactresnet':
+    elif args.model == 'preactresnet':# model 小，需要降 lr
         model = nn.DataParallel(create_network().cuda())
+        args.lr = 0.05
 
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
     logger = get_logger(model_dir + '/train.log')
