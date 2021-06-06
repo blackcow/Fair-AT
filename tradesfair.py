@@ -76,8 +76,9 @@ def trades_fair_loss(args, model, x_natural, y, optimizer, rep_center, step_size
     # zero gradient
     optimizer.zero_grad()
     # calculate robust loss
-    rep, logits_x = model(x_natural)
-    _, logits_adv = model(x_adv)
+    rep_benign, logits_x = model(x_natural)
+    rep_robust, logits_adv = model(x_adv)
+    rep = [rep_benign, rep_robust]
     # loss_natural = F.cross_entropy(logits_x, y)
     rep_center, loss_natural = fair_loss(args=args, target=y, rep_center=rep_center, rep=rep, out=logits_x)
     loss_robust = (1.0 / batch_size) * criterion_kl(F.log_softmax(logits_adv, dim=1),

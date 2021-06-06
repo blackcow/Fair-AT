@@ -204,11 +204,17 @@ def update(rep_center, rep_temp, rep_num, batch_num):
     return rep_center
 
 def train(args, model, device, train_loader, optimizer, epoch, logger):
+    tmprep, _ = model(torch.zeros([20, 3, 32, 32]).cuda())
+    # _, C, H, W = tmprep.size()
+    C,H,W=512,8,8
     model.train()
     start = time.time()
-
     # 初始化各 label 的 rep 的中心 [10, 640, 8, 8]
-    rep_center = torch.zeros([10, 40960]).cuda()
+    # rep_benign_center = torch.zeros([10, C*H*W]).cuda()
+    # rep_robust_center = torch.zeros([10, C*H*W]).cuda()
+    rep_benign_center = torch.zeros([10, C * H * W]).cuda()
+    rep_robust_center = torch.zeros([10, C * H * W]).cuda()
+    rep_center = [rep_benign_center, rep_robust_center]
     rep_num = torch.zeros([10])
 
     for batch_idx, (data, target) in enumerate(train_loader):

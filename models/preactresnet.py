@@ -40,7 +40,7 @@ class PreActResNet(nn.Module):
         super(PreActResNet, self).__init__()
         self.in_planes = 64
 
-        self.other_layers = nn.ModuleList()
+        # self.other_layers = nn.ModuleList()
 
         self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
 
@@ -53,35 +53,40 @@ class PreActResNet(nn.Module):
         self.other_layer4 = self._make_layer(block, 512, num_blocks[3], stride=2)
 
         self.linear = GlobalpoolFC(512 * block.expansion, num_classes)
-        self.other_layers.append(self.linear)
+        # self.other_layers.append(self.linear)
 
     def _make_layer(self, block, planes, num_blocks, stride):
         strides = [stride] + [1] * (num_blocks - 1)
         layers = []
         for stride in strides:
             layers.append(block(self.in_planes, planes, stride))
-            self.other_layers.append(layers[-1])
-
+            # self.other_layers.append(layers[-1])
             self.in_planes = planes * block.expansion
         return nn.Sequential(*layers)
 
     def forward(self, x):
-
         x = self.layer_one(x)
-        self.layer_one_out = x
-        self.layer_one_out.requires_grad_()
-        self.layer_one_out.retain_grad()
-        rep = self.layer_one_out
-        i = 0
-        for layer in self.other_layers:
-            # rep = layer(rep)
-            i += 1
-            if i != 9:
-                rep = layer(rep)
-            else:
-                out = layer(rep)
+        # self.layer_one_out = x
+        # self.layer_one_out.requires_grad_()
+        # self.layer_one_out.retain_grad()
+        # rep = self.layer_one_out
+        x = self.other_layer1(x)
+        x = self.other_layer2(x)
+        x = self.other_layer3(x)
+        rep = self.other_layer4(x)
+        out = self.linear(rep)
         # rep before GlobalPooling & logits
         return rep, out
+
+    # def forward(self, x):
+    #     x = self.layer_one(x)
+    #     # self.layer_one_out = x
+    #     # self.layer_one_out.requires_grad_()
+    #     # self.layer_one_out.retain_grad()
+    #     # x = self.layer_one_out
+    #     for layer in self.other_layers:
+    #         x = layer(x)
+    #     return x, x
 
 
 class GlobalpoolFC(nn.Module):
