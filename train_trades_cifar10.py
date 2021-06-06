@@ -12,6 +12,7 @@ import logging
 import numpy as np
 from models.wideresnet import *
 from models.densenet import *
+from models.preactresnet import create_network
 from models.resnet import *
 from trades import trades_loss
 from tradesfair import trades_fair_loss
@@ -60,7 +61,7 @@ parser.add_argument('--model-dir', default='./model-cifar-wideResNet/',
                     help='directory of model for saving checkpoint')
 parser.add_argument('--save-freq', '-s', default=10, type=int, metavar='N',
                     help='save frequency')
-parser.add_argument('--model', default='wideresnet',
+parser.add_argument('--model', default='wideresnet', choices=['wideresnet', 'densenet', 'preactresnet'],
                     help='AT model name')
 parser.add_argument('--fair', type=str, help='use fair_loss, choices=[v1, v2, v3, v4]')
 parser.add_argument('--T', default=0.1, type=float, help='Temperature, default=0.07')
@@ -307,6 +308,9 @@ def main():
         model = nn.DataParallel(WideResNet(depth=args.depth, widen_factor=args.widen_factor, dropRate=args.droprate)).cuda()
     elif args.model == 'densenet':
         model = nn.DataParallel(DenseNet121().cuda())
+    elif args.model == 'preactresnet':
+        model = nn.DataParallel(create_network().cuda())
+
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
     logger = get_logger(model_dir + '/train.log')
 
