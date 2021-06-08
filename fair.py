@@ -26,6 +26,19 @@ def FairLoss1(args, rep, rep_center, target):
     fair_loss = F.cross_entropy(logits, target)
     return fair_loss
 
+# 计算 rep 中心，然后同最近邻的 rep 中心，尽量远
+def FairLoss2(args, rep, rep_center, target):
+    # [10, H*W]
+    rep_center = nn.functional.normalize(rep_center, dim=1)
+    logits = torch.mm(rep_center.clone().detach(), torch.transpose(rep_center, 0, 1).clone().detach())  # [10,HW]*[HW,10]=[10,10]
+    logits = logits - torch.diag_embed(torch.diag(logits))  # 去掉对角线的 1
+    fair_loss = logits.max(0)
+    fair_loss = fair_loss[0].abs().sum()
+    # sim = F.cosine_similarity(rep, rep.clone().detach())
+    return fair_loss
+    # return torch.ones(1).requires_grad_(True)
+
+
 # class FairLoss2(nn.Module):
 #     def __init__(self, lamda):
 #         super(FairLoss2, self).__init__()
@@ -58,6 +71,7 @@ def fair_loss(args, target, rep_center, rep, out):
 
         # 更新 label i 的中心, rep_center [10, 40960]
         # fair v1：新的中心点，占 50%的权重；如果该 batch 中没有样本，则变成原来的一半
+        # 根据 batch 计算中心
         if args.fair == 'v1':
             rep_center[0][i] = (rep_center[0][i] + rep_benign_temp.mean(dim=0)) / 2
             rep_center[1][i] = (rep_center[1][i] + rep_robust_temp.mean(dim=0)) / 2
@@ -81,18 +95,20 @@ def fair_loss(args, target, rep_center, rep, out):
             rep_center[1][i] = rep_center[1][i] * 0.9 + rep_robust_temp.mean(dim=0) * 0.1
 
     CEloss = F.cross_entropy(out, target)
-    loss = CEloss + args.lamda * FairLoss1(args, rep=rep[0], rep_center=rep_center[0], target=target) \
-           + args.lamda * FairLoss1(args, rep=rep[1], rep_center=rep_center[1], target=target)
+    # loss = CEloss + args.lamda * FairLoss1(args, rep=rep[0], rep_center=rep_center[0], target=target) \
+    #        + args.lamda * FairLoss1(args, rep=rep[1], rep_center=rep_center[1], target=target)
+    loss = CEloss + args.lamda * FairLoss2(args, rep=rep[0], rep_center=rep_center[0], target=target) \
+           + args.lamda * FairLoss2(args, rep=rep[1], rep_center=rep_center[1], target=target)
 
-        # # 只看 label 中心点之间的距离，作为 loss
-        # if args.fair == 'v4':  # 目前 rep 的距离看来，没达到与其效果
-        #     rep_center[i] = rep_center[i] * 0.9 + rep_temp.mean(dim=0) * 0.1
-        #     # 归一化，计算 input 同 rep_center 计算余弦相似度
-        #     rep_center = rep_center.detach()
-        #     rep_center_norm = nn.functional.normalize(rep_center, dim=1)
-        #
-        #     # 针对 label 中心互相远离的 loss
-        #     fl = FairLoss2(args.lamda)
-        #     CEloss = F.cross_entropy(out, target)
-        #     loss = CEloss + fl(rep_center_norm)
+    # # 只看 label 中心点之间的距离，作为 loss
+    # if args.fair == 'v4':  # 目前 rep 的距离看来，没达到与其效果
+    #     rep_center[i] = rep_center[i] * 0.9 + rep_temp.mean(dim=0) * 0.1
+    #     # 归一化，计算 input 同 rep_center 计算余弦相似度
+    #     rep_center = rep_center.detach()
+    #     rep_center_norm = nn.functional.normalize(rep_center, dim=1)
+    #
+    #     # 针对 label 中心互相远离的 loss
+    #     fl = FairLoss2(args.lamda)
+    #     CEloss = F.cross_entropy(out, target)
+    #     loss = CEloss + fl(rep_center_norm)
     return rep_center, loss
