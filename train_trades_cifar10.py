@@ -311,7 +311,7 @@ def main():
         model = nn.DataParallel(DenseNet121().cuda())
     elif args.model == 'preactresnet':# model 小，需要降 lr
         model = nn.DataParallel(create_network().cuda())
-        args.lr = 0.001
+        args.lr = 0.01
         args.weight_decay = 5e-4
 
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
