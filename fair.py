@@ -38,6 +38,15 @@ def FairLoss2(args, rep, rep_center, target):
     return fair_loss
     # return torch.ones(1).requires_grad_(True)
 
+# fl2：最近的，尽量远
+# fl3：（最）远的，尽量近（让 rep 中心，尽量互相混淆）
+def FairLoss3(args, rep, rep_center, target):
+    # [10, H*W]
+    rep_center = nn.functional.normalize(rep_center, dim=1)
+    logits = torch.mm(rep_center.clone().detach(), torch.transpose(rep_center, 0, 1).clone().detach())  # [10,HW]*[HW,10]=[10,10]
+    # logits = logits - torch.ones_like(logits)
+    fair_loss = (torch.ones_like(logits) - logits).sum()  # 逼近 1，相互混淆
+    return fair_loss
 
 # class FairLoss2(nn.Module):
 #     def __init__(self, lamda):
@@ -97,9 +106,19 @@ def fair_loss(args, target, rep_center, rep, out):
     CEloss = F.cross_entropy(out, target)
     # loss = CEloss + args.lamda * FairLoss1(args, rep=rep[0], rep_center=rep_center[0], target=target) \
     #        + args.lamda * FairLoss1(args, rep=rep[1], rep_center=rep_center[1], target=target)
-    loss = CEloss + args.lamda * FairLoss2(args, rep=rep[0], rep_center=rep_center[0], target=target) \
-           + args.lamda * FairLoss2(args, rep=rep[1], rep_center=rep_center[1], target=target)
-
+    # loss = CEloss + args.lamda * FairLoss2(args, rep=rep[0], rep_center=rep_center[0], target=target) \
+    #        + args.lamda * FairLoss2(args, rep=rep[1], rep_center=rep_center[1], target=target)
+    if args.fairloss == 'fl3':
+        loss = CEloss + args.fl_lamda * FairLoss3(args, rep=rep[0], rep_center=rep_center[0], target=target) \
+               + args.fl_lamda * FairLoss3(args, rep=rep[1], rep_center=rep_center[1], target=target)
+    elif args.fairloss == 'fl2':
+        loss = CEloss + args.lamda * FairLoss2(args, rep=rep[0], rep_center=rep_center[0], target=target) \
+               + args.lamda * FairLoss2(args, rep=rep[1], rep_center=rep_center[1], target=target)
+    elif args.fairloss == 'fl1':
+        loss = CEloss + args.lamda * FairLoss1(args, rep=rep[0], rep_center=rep_center[0], target=target) \
+               + args.lamda * FairLoss1(args, rep=rep[1], rep_center=rep_center[1], target=target)
+    else:
+        raise ValueError('no fairloss!')
     # # 只看 label 中心点之间的距离，作为 loss
     # if args.fair == 'v4':  # 目前 rep 的距离看来，没达到与其效果
     #     rep_center[i] = rep_center[i] * 0.9 + rep_temp.mean(dim=0) * 0.1

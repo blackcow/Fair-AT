@@ -64,8 +64,10 @@ parser.add_argument('--save-freq', '-s', default=10, type=int, metavar='N',
 parser.add_argument('--model', default='wideresnet', choices=['wideresnet', 'densenet', 'preactresnet'],
                     help='AT model name')
 parser.add_argument('--fair', type=str, help='use fair_loss, choices=[v1, v2, v3, v4]')
+parser.add_argument('--fairloss', type=str, help='use fair_loss, choices=[fl1, fl2, fl3, fl4]')
 parser.add_argument('--T', default=0.1, type=float, help='Temperature, default=0.07')
 parser.add_argument('--lamda', default=1, type=int, help='lamda of fairloss, default=10')
+parser.add_argument('--fl_lamda', default=0.1, type=float, help='lamda of fairloss, default=10')
 
 args = parser.parse_args()
 
@@ -75,7 +77,7 @@ print(args)
 factors = 'e' + str(args.epsilon) + '_depth' + str(args.depth) + '_' + 'widen' + str(args.widen_factor) + '_' + 'drop' + str(args.droprate)
 if args.fair is not None:
     model_dir = args.model_dir + args.model + '/' + args.AT_method +\
-                '_fair_' + args.fair + '_T' + str(args.T)+'_L' + str(args.lamda) + '/' + factors
+                '_fair_' + args.fair + '_fl_' + args.fairloss + '_T' + str(args.T)+'_L' + str(args.lamda) + '/' + factors
 else:
     model_dir = args.model_dir + args.model + '/' + args.AT_method + '/' + factors
 print(model_dir)
