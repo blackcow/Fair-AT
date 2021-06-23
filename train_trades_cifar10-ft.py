@@ -347,10 +347,17 @@ def main():
 
         # save checkpoint
         if epoch % args.save_freq == 0 or epoch == 74 or epoch == 75 or epoch == 76:
-            torch.save(model.state_dict(),
-                       os.path.join(model_dir, 'model-wideres-epoch{}.pt'.format(epoch)))
+            # torch.save(model.state_dict(),
+            #            os.path.join(model_dir, 'model-ft-epoch{}.pt'.format(epoch)))
             # torch.save(optimizer.state_dict(),
             #            os.path.join(model_dir, 'opt-wideres-checkpoint_epoch{}.tar'.format(epoch)))
+            # 合并保存
+            checkpoint = {
+                "net": model.state_dict(),
+                'optimizer': optimizer.state_dict(),
+                "epoch": epoch
+            }
+            torch.save(checkpoint, os.path.join(model_dir, 'ckpt-ft-epoch{}.pt'.format(epoch)))
 
     writer.close()
 if __name__ == '__main__':
