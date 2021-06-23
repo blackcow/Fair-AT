@@ -22,7 +22,7 @@ from trades import trades_loss
 from tradesfair import trades_fair_loss
 from pgd import pgd_loss
 from torch.utils.tensorboard import SummaryWriter
-from cifar10_rmlabel import CIFAR10MY
+from cifar10_ft import CIFAR10FT
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR TRADES Adversarial Training')
 parser.add_argument('--batch-size', type=int, default=128, metavar='N',
@@ -76,6 +76,9 @@ parser.add_argument('--fl_lamda', default=0.1, type=float, help='lamda of fairlo
 # remove label data
 parser.add_argument('--rmlabel', default=3, type=int, help='Label of the deleted training data')
 parser.add_argument('--percent', default=1, type=float, help='Percentage of deleted data')
+# fine-tune
+parser.add_argument('--finetune', action="store_true", help='Fine-tune on partial label data')
+parser.add_argument('--ft-epoch', default=30, type=int, help='Fine-tune epoch')
 args = parser.parse_args()
 
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
@@ -107,7 +110,7 @@ transform_test = transforms.Compose([
     # transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
 ])
 # remove label data (default label = 3)
-trainset = CIFAR10MY(root='../data', train=True, download=True, transform=transform_train, args=args)
+trainset = CIFAR10FT(root='../data', train=True, download=True, transform=transform_train, args=args)
 train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
 
 testset = torchvision.datasets.CIFAR10(root='../data', train=False, download=True, transform=transform_test)
@@ -314,7 +317,16 @@ def main():
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
     logger = get_logger(model_dir + '/train.log')
 
-    for epoch in range(1, args.epochs + 1):
+    # fine-tune
+    start_epoch = 1
+    if args.finetune:
+        path_checkpoint = './model-cifar-wideResNet/preactresnet/TRADES/ckpt-epoch76.pt'
+        checkpoint = torch.load(path_checkpoint)
+        model.load_state_dict(checkpoint['net'])  # 加载模型可学习参数
+        optimizer.load_state_dict(checkpoint['optimizer'])  # 加载优化器参数
+        start_epoch = checkpoint['epoch']
+
+    for epoch in range(start_epoch, start_epoch + args.ft_epoch):
         # adjust learning rate for SGD
         adjust_learning_rate(optimizer, epoch)
 
