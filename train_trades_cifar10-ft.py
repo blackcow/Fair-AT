@@ -1,4 +1,5 @@
 """
+Fine-tuning
 使用部分 label 的 data 来做 fine-tune（AT or ST），查看 fairness 指标变化
 """
 from __future__ import print_function
