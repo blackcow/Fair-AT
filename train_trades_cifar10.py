@@ -75,11 +75,18 @@ os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
 print(args)
 # settings save model path
 factors = 'e' + str(args.epsilon) + '_depth' + str(args.depth) + '_' + 'widen' + str(args.widen_factor) + '_' + 'drop' + str(args.droprate)
+# if args.fair is not None:
+#     model_dir = args.model_dir + args.model + '/' + args.AT_method +\
+#                 '_fair_' + args.fair + '_fl_' + args.fairloss + '_T' + str(args.T)+'_L' + str(args.lamda) + '/' + factors
+# else:
+#     model_dir = args.model_dir + args.model + '/' + args.AT_method + '/' + factors
+
 if args.fair is not None:
     model_dir = args.model_dir + args.model + '/' + args.AT_method +\
-                '_fair_' + args.fair + '_fl_' + args.fairloss + '_T' + str(args.T)+'_L' + str(args.lamda) + '/' + factors
+                '_fair_' + args.fair + '_fl_' + args.fairloss + '_T' + str(args.T)+'_L' + str(args.lamda)
 else:
-    model_dir = args.model_dir + args.model + '/' + args.AT_method + '/' + factors
+    model_dir = args.model_dir + args.model + '/' + args.AT_method
+
 print(model_dir)
 if not os.path.exists(model_dir):
     os.makedirs(model_dir)
@@ -339,11 +346,19 @@ def main():
         writer.add_scalars(graph_name, {'training_acc': training_accuracy, 'test_accuracy': test_accuracy}, epoch)
 
         # save checkpoint
+        # if epoch % args.save_freq == 0 and epoch > 50 or epoch == 74 or epoch == 75 or epoch == 76:
         if epoch % args.save_freq == 0 or epoch == 74 or epoch == 75 or epoch == 76:
-            torch.save(model.state_dict(),
-                       os.path.join(model_dir, 'model-wideres-epoch{}.pt'.format(epoch)))
+            # torch.save(model.state_dict(),
+            #            os.path.join(model_dir, 'model-wideres-epoch{}.pt'.format(epoch)))
             # torch.save(optimizer.state_dict(),
             #            os.path.join(model_dir, 'opt-wideres-checkpoint_epoch{}.tar'.format(epoch)))
+            # 合并保存
+            checkpoint = {
+                "net": model.state_dict(),
+                'optimizer': optimizer.state_dict(),
+                "epoch": epoch
+            }
+            torch.save(checkpoint, os.path.join(model_dir, 'ckpt-epoch{}.pt'.format(epoch)))
 
     writer.close()
 if __name__ == '__main__':
