@@ -87,9 +87,9 @@ print(args)
 factors = 'e' + str(args.epsilon) + '_depth' + str(args.depth) + '_' + 'widen' + str(args.widen_factor) + '_' + 'drop' + str(args.droprate)
 if args.fair is not None:
     model_dir = args.model_dir + args.model + '/' + args.AT_method +\
-                '_fair_' + args.fair + '_fl_' + args.fairloss + '_T' + str(args.T)+'_L' + str(args.lamda) + '/' + factors
+                '_fair_' + args.fair + '_fl_' + args.fairloss + '_T' + str(args.T)+'_L' + str(args.lamda)
 else:
-    model_dir = args.model_dir + args.model + '/' + args.AT_method + '/' + 'rmlabel' + str(args.rmlabel)
+    model_dir = args.model_dir + args.model + '/' + args.AT_method + '/fine-tune'
 print(model_dir)
 if not os.path.exists(model_dir):
     os.makedirs(model_dir)
@@ -315,7 +315,7 @@ def main():
         args.weight_decay = 5e-4
 
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
-    logger = get_logger(model_dir + '/train.log')
+    logger = get_logger(model_dir + '/ft-train.log')
 
     # fine-tune
     start_epoch = 1
@@ -325,6 +325,8 @@ def main():
         model.load_state_dict(checkpoint['net'])  # 加载模型可学习参数
         optimizer.load_state_dict(checkpoint['optimizer'])  # 加载优化器参数
         start_epoch = checkpoint['epoch']
+
+    print('resume from {} epoch.'.format(start_epoch))
 
     for epoch in range(start_epoch, start_epoch + args.ft_epoch):
         # adjust learning rate for SGD
