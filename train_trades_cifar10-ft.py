@@ -78,7 +78,7 @@ parser.add_argument('--rmlabel', default=3, type=int, help='Label of the deleted
 parser.add_argument('--percent', default=1, type=float, help='Percentage of deleted data')
 # fine-tune
 parser.add_argument('--finetune', action="store_true", help='Fine-tune on partial label data')
-parser.add_argument('--ft-epoch', default=30, type=int, help='Fine-tune epoch')
+parser.add_argument('--ft-epoch', default=50, type=int, help='Fine-tune epoch')
 args = parser.parse_args()
 
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
