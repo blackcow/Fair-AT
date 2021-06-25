@@ -112,7 +112,8 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
 
         optimizer.zero_grad()
         # Standard Training Loss
-        loss = F.cross_entropy(model(data), target)
+        _, out = model(data)
+        loss = F.cross_entropy(out, target)
 
         loss.backward()
         optimizer.step()
@@ -131,7 +132,7 @@ def eval_train(model, device, train_loader, logger):
     with torch.no_grad():
         for data, target in train_loader:
             data, target = data.cuda(), target.cuda()
-            output = model(data)
+            _, output = model(data)
             train_loss += F.cross_entropy(output, target, size_average=False).item()
             pred = output.max(1, keepdim=True)[1]
             correct += pred.eq(target.view_as(pred)).sum().item()
@@ -150,7 +151,7 @@ def eval_test(model, device, test_loader, logger):
     with torch.no_grad():
         for data, target in test_loader:
             data, target = data.cuda(), target.cuda()
-            output = model(data)
+            _, output = model(data)
             test_loss += F.cross_entropy(output, target, size_average=False).item()
             pred = output.max(1, keepdim=True)[1]
             correct += pred.eq(target.view_as(pred)).sum().item()
