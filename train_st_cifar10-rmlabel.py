@@ -37,7 +37,7 @@ parser.add_argument('--momentum', type=float, default=0.9, metavar='M',
                     help='SGD momentum')
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='disables CUDA training')
-parser.add_argument('--gpu-id', type=str, default='0,1', help='gpu_id')
+parser.add_argument('--gpu-id', type=str, default='0', help='gpu_id')
 parser.add_argument('--epsilon', default=0.031, help='perturbation')
 parser.add_argument('--num-steps', default=10,
                     help='perturb number of steps')
