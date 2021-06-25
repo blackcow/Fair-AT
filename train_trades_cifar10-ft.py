@@ -79,6 +79,7 @@ parser.add_argument('--percent', default=1, type=float, help='Percentage of dele
 # fine-tune
 parser.add_argument('--finetune', action="store_true", help='Fine-tune on partial label data')
 parser.add_argument('--ft-epoch', default=50, type=int, help='Fine-tune epoch')
+parser.add_argument('--resum-epoch', default=100, type=int, help='resume from epoch')
 args = parser.parse_args()
 
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
@@ -89,7 +90,8 @@ if args.fair is not None:
     model_dir = args.model_dir + args.model + '/' + args.AT_method +\
                 '_fair_' + args.fair + '_fl_' + args.fairloss + '_T' + str(args.T)+'_L' + str(args.lamda)
 else:
-    model_dir = args.model_dir + args.model + '/' + args.AT_method + '/fine-tune'
+    model_dir = args.model_dir + args.model + '/' + args.AT_method + '/fine-tune/resum_' + str(args.resum_epoch)
+
 print(model_dir)
 if not os.path.exists(model_dir):
     os.makedirs(model_dir)
@@ -320,13 +322,14 @@ def main():
     # fine-tune
     start_epoch = 1
     if args.finetune:
-        path_checkpoint = './model-cifar-wideResNet/preactresnet/TRADES/ckpt-epoch76.pt'
+        start_epoch = args.resum_epoch
+        path_checkpoint = './model-cifar-wideResNet/preactresnet/TRADES/ckpt-epoch' + str(start_epoch) +'.pt'
         checkpoint = torch.load(path_checkpoint)
         model.load_state_dict(checkpoint['net'])  # 加载模型可学习参数
         optimizer.load_state_dict(checkpoint['optimizer'])  # 加载优化器参数
         start_epoch = checkpoint['epoch']
-
-    print('resume from {} epoch.'.format(start_epoch))
+        print(path_checkpoint)
+        print('resume from {} epoch.'.format(start_epoch))
 
     for epoch in range(start_epoch, start_epoch + args.ft_epoch):
         # adjust learning rate for SGD
