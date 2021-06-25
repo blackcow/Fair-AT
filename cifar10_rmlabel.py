@@ -19,7 +19,7 @@ from torchvision.datasets.utils import download_url, check_integrity
 # My import
 import argparse
 
-class CIFAR10MY(data.Dataset):
+class CIFAR10RM(data.Dataset):
     """`CIFAR10 <https://www.cs.toronto.edu/~kriz/cifar.html>`_ Dataset.
 
     Args:
