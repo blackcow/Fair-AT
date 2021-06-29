@@ -13,9 +13,9 @@ from torchvision import datasets, transforms
 import time
 import logging
 import numpy as np
-from models.wideresnet import *
+from models.wideresnet_cl import *
 from models.densenet import *
-from models.preactresnet import create_network
+from models.preactresnet_cl import create_network
 from models.resnet import *
 from trades import trades_loss
 # from tradesfair import trades_fair_loss
