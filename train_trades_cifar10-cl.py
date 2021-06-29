@@ -271,7 +271,7 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
             _, out = model(st_data)
             CEloss = F.cross_entropy(out, target)
             # with autocast(enabled=self.args.fp16_precision):
-            features, _ = model(images)  # 这里 feature 的设计需要考虑下  [batch, 512, 4, 4]
+            features, _ = model(images)  # 这里 feature 的设计需要考虑下  [batch, 512, 1, 1]
             B, _, _, _ = features.size()
             features = features.reshape(B, -1)
             logits, labels = info_nce_loss(features)
