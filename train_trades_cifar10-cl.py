@@ -266,9 +266,15 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
             # features, _ = model(images)  # 这里 feature 的设计需要考虑下  [batch, 512, 1, 1]
             # B, _, _, _ = features.size()
             # features = features.reshape(B, -1)
-            features, _ = model(images)  # 这里 feature 是加了 cl 的 mlp 的  [batch, out_dim]
-            logits, labels = info_nce_loss(features)
-            loss = CEloss + criterion(logits, labels)  # labels 都是 0
+            if args.cl == 'v1':  # 所有 data 都做 CL
+                features, _ = model(images)  # 这里 feature 是加了 cl 的 mlp 的  [batch, out_dim]
+                logits, labels = info_nce_loss(features)
+                loss = CEloss + criterion(logits, labels)  # labels 都是 0
+
+            elif args.cl == 'v2':  # 只有效果差的 label 做 CL（2-5）
+                features, _ = model(images)  # 这里 feature 是加了 cl 的 mlp 的  [batch, out_dim]
+                logits, labels = info_nce_loss(features)
+                loss = CEloss + criterion(logits, labels)  # labels 都是 0
 
         loss.backward()
         optimizer.step()
