@@ -41,6 +41,7 @@ class PreActResNet(nn.Module):
     def __init__(self, block, num_blocks, num_classes=10):
         super(PreActResNet, self).__init__()
         self.in_planes = 64
+        self.out_dim = 128
 
         # self.other_layers = nn.ModuleList()
 
@@ -55,6 +56,10 @@ class PreActResNet(nn.Module):
         self.other_layer4 = self._make_layer(block, 512, num_blocks[3], stride=2)
 
         self.linear = GlobalpoolFC(512 * block.expansion, num_classes)
+
+        self.fc_cl = GlobalpoolFC_CL(512, self.out_dim)
+
+        # cl 加入的 mlp
         # self.other_layers.append(self.linear)
 
     def _make_layer(self, block, planes, num_blocks, stride):
@@ -68,27 +73,15 @@ class PreActResNet(nn.Module):
 
     def forward(self, x):
         x = self.layer_one(x)
-        # self.layer_one_out = x
-        # self.layer_one_out.requires_grad_()
-        # self.layer_one_out.retain_grad()
-        # rep = self.layer_one_out
         x = self.other_layer1(x)
         x = self.other_layer2(x)
         x = self.other_layer3(x)
         x = self.other_layer4(x)
-        rep, out = self.linear(x)
+        _, out = self.linear(x)
+        rep = self.fc_cl(x)
         # rep before GlobalPooling & logits
         return rep, out
 
-    # def forward(self, x):
-    #     x = self.layer_one(x)
-    #     # self.layer_one_out = x
-    #     # self.layer_one_out.requires_grad_()
-    #     # self.layer_one_out.retain_grad()
-    #     # x = self.layer_one_out
-    #     for layer in self.other_layers:
-    #         x = layer(x)
-    #     return x, x
 
 
 class GlobalpoolFC(nn.Module):
@@ -104,6 +97,20 @@ class GlobalpoolFC(nn.Module):
         y = self.fc(y)
         return rep, y
 
+class GlobalpoolFC_CL(nn.Module):
+
+    def __init__(self, num_in, out_dim):
+        super(GlobalpoolFC_CL, self).__init__()
+        self.pool = nn.AdaptiveAvgPool2d(output_size=1)
+        self.fc = nn.Sequential(nn.Linear(num_in, num_in),
+                                nn.ReLU(),
+                                nn.Linear(num_in, out_dim))
+
+    def forward(self, x):
+        rep = self.pool(x)
+        y = rep.reshape(rep.shape[0], -1)
+        y = self.fc(y)
+        return y
 
 def PreActResNet18():
     return PreActResNet(PreActBlock, [2, 2, 2, 2])

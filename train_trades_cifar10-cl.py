@@ -233,18 +233,10 @@ def update(rep_center, rep_temp, rep_num, batch_num):
 
 
 def train(args, model, device, train_loader, optimizer, epoch, logger):
-    tmprep, _ = model(torch.zeros([20, 3, 32, 32]).cuda())
-    _, C, H, W = tmprep.size()
     # C,H,W=512,4,4
     model.train()
     start = time.time()
     criterion = torch.nn.CrossEntropyLoss().cuda()
-
-    # 初始化各 label 的 rep 的中心 [10, 640, 8, 8]
-    rep_benign_center = torch.zeros([10, C * H * W]).cuda()
-    rep_robust_center = torch.zeros([10, C * H * W]).cuda()
-    rep_center = [rep_benign_center, rep_robust_center]
-    rep_num = torch.zeros([10])
 
     for batch_idx, (data_st_cl, target) in enumerate(train_loader):
         st_data, data_cl, data_cl2 = data_st_cl[0], data_st_cl[1], data_st_cl[2]
@@ -271,9 +263,10 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
             _, out = model(st_data)
             CEloss = F.cross_entropy(out, target)
             # with autocast(enabled=self.args.fp16_precision):
-            features, _ = model(images)  # 这里 feature 的设计需要考虑下  [batch, 512, 1, 1]
-            B, _, _, _ = features.size()
-            features = features.reshape(B, -1)
+            # features, _ = model(images)  # 这里 feature 的设计需要考虑下  [batch, 512, 1, 1]
+            # B, _, _, _ = features.size()
+            # features = features.reshape(B, -1)
+            features, _ = model(images)  # 这里 feature 是加了 cl 的 mlp 的  [batch, out_dim]
             logits, labels = info_nce_loss(features)
             loss = CEloss + criterion(logits, labels)  # labels 都是 0
 

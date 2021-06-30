@@ -1,5 +1,6 @@
 """
-rep 改为是 avgpooling 之后的输出
+rep 改为是 avgpooling 之后的输出，
+加入 MLP 做 CL 的表示用
 """
 import math
 import torch
@@ -76,6 +77,7 @@ class WideResNet(nn.Module):
         # self.relu = nn.ReLU(inplace=True)
         self.relu = nn.ReLU()
         self.fc = nn.Linear(nChannels[3], num_classes)
+
         self.nChannels = nChannels[3]
 
         for m in self.modules():
