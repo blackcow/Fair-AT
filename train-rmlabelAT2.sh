@@ -31,7 +31,7 @@ wait
 echo "开始训练 10......"
 CUDA_VISIBLE_DEVICES=0,1 python train_trades_cifar10-rmlabel.py  --model preactresnet --AT-method TRADES --batch-size 128 --rmlabel 9 --seed 3
 wait
-echo "结束训练......"
+echo "结束训练...... "
 
 
 
