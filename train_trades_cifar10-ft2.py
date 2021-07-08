@@ -341,8 +341,7 @@ def main():
             print(p)
             p.requires_grad = True
         # 将需要 fine-tuning 的参数放入optimizer 中
-        optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr * 0.001,
-                      momentum=args.momentum, weight_decay=args.weight_decay)
+        optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr * 0.001, momentum=args.momentum, weight_decay=args.weight_decay)
 
     for epoch in range(start_epoch, start_epoch + args.ft_epoch):
         # adjust learning rate for SGD
