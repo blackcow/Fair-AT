@@ -335,11 +335,13 @@ def main():
         print(path_checkpoint)
         print('resume from {} epoch.'.format(start_epoch))
         # 冻结 FC 层之外的参数
-        for p in model.parameters():  # 将需要冻结的参数的 requires_grad 设置为 False
-            p.requires_grad = False
-        for p in model.linear.parameters():  # 将fine-tuning 的参数的 requires_grad 设置为 True
-            print(p)
-            p.requires_grad = True
+        for child in model.children():
+            print(child)
+        # for p in model.parameters():  # 将需要冻结的参数的 requires_grad 设置为 False
+        #     p.requires_grad = False
+        # for p in model.linear.parameters():  # 将fine-tuning 的参数的 requires_grad 设置为 True
+        #     print(p)
+        #     p.requires_grad = True
         # 将需要 fine-tuning 的参数放入optimizer 中
         optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr * 0.001, momentum=args.momentum, weight_decay=args.weight_decay)
 
