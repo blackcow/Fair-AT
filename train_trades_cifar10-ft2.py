@@ -1,7 +1,9 @@
 """
-Fine-tuning 整个模型
+Fine-tuning FC 层之前的参数
 使用部分 label 的 data 来做 fine-tune（AT or ST），查看 fairness 指标变化
+不需要加载 opt 的参数
 """
+# CUDA_VISIBLE_DEVICES=2,3 python train_trades_cifar10-ft2.py --model preactresnet --AT-method TRADES --batch-size 128 --finetune
 from __future__ import print_function
 import os
 import argparse
@@ -90,7 +92,7 @@ if args.fair is not None:
     model_dir = args.model_dir + args.model + '/' + args.AT_method +\
                 '_fair_' + args.fair + '_fl_' + args.fairloss + '_T' + str(args.T)+'_L' + str(args.lamda)
 else:
-    model_dir = args.model_dir + args.model + '/' + args.AT_method + '/fine-tune/resum_' + str(args.resum_epoch)
+    model_dir = args.model_dir + args.model + '/' + args.AT_method + '/fine-tune-FC/resum_' + str(args.resum_epoch)
 
 print(model_dir)
 if not os.path.exists(model_dir):
@@ -224,6 +226,8 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
     _, C, H, W = tmprep.size()
     # C,H,W=512,4,4
     model.train()
+    # for module in model.modules():
+    #     module.eval()
     start = time.time()
     # 初始化各 label 的 rep 的中心 [10, 640, 8, 8]
     rep_benign_center = torch.zeros([10, C * H * W]).cuda()
@@ -316,7 +320,7 @@ def main():
         args.lr = 0.01
         args.weight_decay = 5e-4
 
-    optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
+    # optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
     logger = get_logger(model_dir + '/ft-train.log')
 
     # fine-tune
@@ -326,10 +330,19 @@ def main():
         path_checkpoint = './model-cifar-wideResNet/preactresnet/TRADES/AT-opt/ckpt-epoch' + str(start_epoch) +'.pt'
         checkpoint = torch.load(path_checkpoint)
         model.load_state_dict(checkpoint['net'])  # 加载模型可学习参数
-        optimizer.load_state_dict(checkpoint['optimizer'])  # 加载优化器参数
+
         start_epoch = checkpoint['epoch']
         print(path_checkpoint)
         print('resume from {} epoch.'.format(start_epoch))
+        # 冻结 FC 层之外的参数
+        for p in model.parameters():  # 将需要冻结的参数的 requires_grad 设置为 False
+            p.requires_grad = False
+        for p in model.linear.parameters():  # 将fine-tuning 的参数的 requires_grad 设置为 True
+            print(p)
+            p.requires_grad = True
+        # 将需要 fine-tuning 的参数放入optimizer 中
+        optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=args.lr * 0.001,
+                      momentum=args.momentum, weight_decay=args.weight_decay)
 
     for epoch in range(start_epoch, start_epoch + args.ft_epoch):
         # adjust learning rate for SGD
