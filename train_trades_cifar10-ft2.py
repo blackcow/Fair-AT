@@ -342,7 +342,6 @@ def main():
         for name, child in model.module.named_children():
             print(name)
             # print(child)
-
         for p in model.parameters():  # 将需要冻结的参数的 requires_grad 设置为 False
             p.requires_grad = False
         # model.module.linear.parameters.requires_grad = True  # 将fine-tuning 的参数的 requires_grad 设置为 True
