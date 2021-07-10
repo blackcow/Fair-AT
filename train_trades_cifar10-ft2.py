@@ -24,7 +24,7 @@ from trades import trades_loss
 from tradesfair import trades_fair_loss
 from pgd import pgd_loss
 from torch.utils.tensorboard import SummaryWriter
-from cifar10_ft import CIFAR10FT
+from cifar10_sv import CIFAR10_SV
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR TRADES Adversarial Training')
 parser.add_argument('--batch-size', type=int, default=128, metavar='N',
@@ -114,7 +114,7 @@ transform_test = transforms.Compose([
     # transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
 ])
 # remove label data (default label = 3)
-trainset = CIFAR10FT(root='../data', train=True, download=True, transform=transform_train, args=args)
+trainset = CIFAR10_SV(root='../data', train=True, download=True, transform=transform_train, args=args)
 train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
 
 testset = torchvision.datasets.CIFAR10(root='../data', train=False, download=True, transform=transform_test)

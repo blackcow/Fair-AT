@@ -1,6 +1,5 @@
 """
-Fine-tuning 整个模型
-使用部分 label 的 data 来做 fine-tune（AT or ST），查看 fairness 指标变化
+去除部分 label 的 data，再做 AT，看 fairness issue 是否还存在
 """
 from __future__ import print_function
 import os
@@ -76,11 +75,7 @@ parser.add_argument('--fl_lamda', default=0.1, type=float, help='lamda of fairlo
 # remove label data
 parser.add_argument('--rmlabel', default=3, type=int, help='Label of the deleted training data')
 parser.add_argument('--percent', default=1, type=float, help='Percentage of deleted data')
-# fine-tune
-parser.add_argument('--finetune', action="store_true", help='Fine-tune on partial label data')
-parser.add_argument('--ft-epoch', default=50, type=int, help='Fine-tune epoch')
-parser.add_argument('--resum-epoch', default=100, type=int, help='resume from epoch')
-parser.add_argument('--save-label', default=[2, 3, 4, 5], type=list, help='save label')
+parser.add_argument('--save-label', default=[3, 5], type=list, help='save label')
 args = parser.parse_args()
 
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
@@ -89,10 +84,10 @@ print(args)
 factors = 'e' + str(args.epsilon) + '_depth' + str(args.depth) + '_' + 'widen' + str(args.widen_factor) + '_' + 'drop' + str(args.droprate)
 if args.fair is not None:
     model_dir = args.model_dir + args.model + '/' + args.AT_method +\
-                '_fair_' + args.fair + '_fl_' + args.fairloss + '_T' + str(args.T)+'_L' + str(args.lamda)
+                '_fair_' + args.fair + '_fl_' + args.fairloss + '_T' + str(args.T)+'_L' + str(args.lamda) + '/' + factors
 else:
-    model_dir = args.model_dir + args.model + '/' + args.AT_method + '/fine-tune/resum_' + str(args.resum_epoch)
-
+    model_dir = args.model_dir + args.model + '/' + args.AT_method + '/' + \
+                'rmlabel_seed' + str(args.seed) + '/' + 'rmlabel' + str(args.rmlabel)
 print(model_dir)
 if not os.path.exists(model_dir):
     os.makedirs(model_dir)
@@ -318,21 +313,9 @@ def main():
         args.weight_decay = 5e-4
 
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
-    logger = get_logger(model_dir + '/ft-train.log')
+    logger = get_logger(model_dir + '/train.log')
 
-    # fine-tune
-    start_epoch = 1
-    if args.finetune:
-        start_epoch = args.resum_epoch
-        path_checkpoint = './model-cifar-wideResNet/preactresnet/TRADES/AT-opt/ckpt-epoch' + str(start_epoch) +'.pt'
-        checkpoint = torch.load(path_checkpoint)
-        model.load_state_dict(checkpoint['net'])  # 加载模型可学习参数
-        optimizer.load_state_dict(checkpoint['optimizer'])  # 加载优化器参数
-        start_epoch = checkpoint['epoch']
-        print(path_checkpoint)
-        print('resume from {} epoch.'.format(start_epoch))
-
-    for epoch in range(start_epoch, start_epoch + args.ft_epoch):
+    for epoch in range(1, args.epochs + 1):
         # adjust learning rate for SGD
         adjust_learning_rate(optimizer, epoch)
 
@@ -353,17 +336,10 @@ def main():
 
         # save checkpoint
         if epoch % args.save_freq == 0 or epoch == 74 or epoch == 75 or epoch == 76:
-            # torch.save(model.state_dict(),
-            #            os.path.join(model_dir, 'model-ft-epoch{}.pt'.format(epoch)))
+            torch.save(model.state_dict(),
+                       os.path.join(model_dir, 'model-wideres-epoch{}.pt'.format(epoch)))
             # torch.save(optimizer.state_dict(),
             #            os.path.join(model_dir, 'opt-wideres-checkpoint_epoch{}.tar'.format(epoch)))
-            # 合并保存
-            checkpoint = {
-                "net": model.state_dict(),
-                'optimizer': optimizer.state_dict(),
-                "epoch": epoch
-            }
-            torch.save(checkpoint, os.path.join(model_dir, 'ckpt-ft-epoch{}.pt'.format(epoch)))
 
     writer.close()
 if __name__ == '__main__':

@@ -1,5 +1,5 @@
 """
-仅使用部分 label data，做 fine-tune
+仅使用部分 label data，做 fine-tune，或者做 AT；
 对 training load data 改写
 """
 from __future__ import print_function
@@ -19,7 +19,7 @@ from torchvision.datasets.utils import download_url, check_integrity
 # My import
 import argparse
 
-class CIFAR10FT(data.Dataset):
+class CIFAR10_SV(data.Dataset):
     """`CIFAR10 <https://www.cs.toronto.edu/~kriz/cifar.html>`_ Dataset.
 
     Args:
@@ -104,21 +104,13 @@ class CIFAR10FT(data.Dataset):
         # 对 data 排序，ndarry
         self.data = self.data[idx]
 
-        # 确定删除元素的位置(每 5k 为 1 个 label)
-        # label_idx = self.args.rmlabel
-        # percent = self.args.percent
-        # start = label_idx * 5000
-        # end = int(start + 5000*percent)
-        # print('start:', start)
-        # print('end:', end)
-
         # 保留部分 label 的 data
         # 2，3，4，5（0-1；6-9）
-        list_label = [2, 3, 4, 5]
+        save_label = args.save_label
         all = np.arange(0, 50000, 1)
         data = [] # ndarry
         target = []  # list
-        for label in list_label:
+        for label in save_label:
             start = label * 5000
             end = int(start + 5000)
             label_data = self.data[start:end]
