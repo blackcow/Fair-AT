@@ -88,7 +88,6 @@ if args.fair is not None:
 else:
     model_dir = args.model_dir + args.model + '/' + args.AT_method + '/' + \
                 'svlabel_seed' + str(args.seed) + '/' + 'svlabel_' + " ".join(str(id) for id in args.save_label)
-
 print(model_dir)
 if not os.path.exists(model_dir):
     os.makedirs(model_dir)
