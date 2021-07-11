@@ -75,7 +75,7 @@ parser.add_argument('--fl_lamda', default=0.1, type=float, help='lamda of fairlo
 # remove label data
 parser.add_argument('--rmlabel', default=3, type=int, help='Label of the deleted training data')
 parser.add_argument('--percent', default=1, type=float, help='Percentage of deleted data')
-parser.add_argument('--nargs-int-type', nargs='+', type=int, help='save label')
+parser.add_argument('--save-label', nargs='+', type=int, help='save label')
 args = parser.parse_args()
 
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
