@@ -86,7 +86,7 @@ if args.fair is not None:
                 '_fair_' + args.fair + '_fl_' + args.fairloss + '_T' + str(args.T)+'_L' + str(args.lamda) + '/' + factors
 else:
     model_dir = args.model_dir + args.model + '/' + args.AT_method + '/' + \
-                'rmlabel_seed' + str(args.seed) + '/' + 'mglabel_' + " ".join(str(id) for id in args.merge_label)
+                'mglabel_seed' + str(args.seed) + '/' + 'mglabel_' + "".join(str(id) for id in args.merge_label)
 print(model_dir)
 if not os.path.exists(model_dir):
     os.makedirs(model_dir)
@@ -110,7 +110,7 @@ transform_test = transforms.Compose([
 trainset = CIFAR10MG(root='../data', train=True, download=True, transform=transform_train, args=args)
 train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
 
-testset = torchvision.datasets.CIFAR10(root='../data', train=False, download=True, transform=transform_test)
+testset = CIFAR10MG(root='../data', train=False, download=True, transform=transform_test, args=args)
 test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
 
 def eval_train(model, device, train_loader, logger):

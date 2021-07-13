@@ -109,18 +109,20 @@ class CIFAR10MG(data.Dataset):
         label2 = self.args.merge_label[1]
         if self.train:  # train data
             start = label2 * 5000
-            end = int(start + 5000 * label2)
+            end = int(start + 5000)
             print('start:', start)
             print('end:', end)
             # 更改元素 label
-            self.targets[start:end] = label
+            label_new = [label for _ in range(5000)]
+            self.targets[start:end] = label_new
         else:  # test data
             start = label2 * 1000
-            end = int(start + 1000 * label2)
+            end = int(start + 1000)
             print('start:', start)
             print('end:', end)
             # 更改元素 label
-            self.targets[start:end] = label
+            label_new = [label for _ in range(1000)]
+            self.targets[start:end] = label_new
         self._load_meta()
 
         # # 打印图片
