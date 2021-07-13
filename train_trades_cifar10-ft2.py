@@ -3,7 +3,7 @@ Fine-tuning FC 层之前的参数
 使用部分 label 的 data 来做 fine-tune（AT or ST），查看 fairness 指标变化
 不需要加载 opt 的参数
 """
-# CUDA_VISIBLE_DEVICES=2,3 python train_trades_cifar10-ft2.py --model preactresnet --AT-method TRADES --batch-size 128 --finetune
+# CUDA_VISIBLE_DEVICES=2,3 python train_trades_cifar10-ft2.py --model preactresnet --AT-method TRADES --batch-size 128 --finetune --save-label 3 5
 from __future__ import print_function
 import os
 import argparse
@@ -82,6 +82,8 @@ parser.add_argument('--percent', default=1, type=float, help='Percentage of dele
 parser.add_argument('--finetune', action="store_true", help='Fine-tune on partial label data')
 parser.add_argument('--ft-epoch', default=50, type=int, help='Fine-tune epoch')
 parser.add_argument('--resum-epoch', default=100, type=int, help='resume from epoch')
+# Fine-tune label data
+parser.add_argument('--save-label', nargs='+', type=int, help='merge label')
 args = parser.parse_args()
 
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
@@ -92,7 +94,7 @@ if args.fair is not None:
     model_dir = args.model_dir + args.model + '/' + args.AT_method +\
                 '_fair_' + args.fair + '_fl_' + args.fairloss + '_T' + str(args.T)+'_L' + str(args.lamda)
 else:
-    model_dir = args.model_dir + args.model + '/' + args.AT_method + '/fine-tune-FC/resum_' + str(args.resum_epoch)
+    model_dir = args.model_dir + args.model + '/' + args.AT_method + '/fine-tune-FC/resum_' + str(args.resum_epoch) + '/svlabel_' + "".join(str(id) for id in args.save_label)
 
 print(model_dir)
 if not os.path.exists(model_dir):
