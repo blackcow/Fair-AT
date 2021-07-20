@@ -19,7 +19,7 @@ from models.preactresnet import create_network
 from models.resnet import *
 
 from trades import trades_loss
-from cifar10_keeplabel import CIFAR10KP
+from cifar10_keeplabel import CIFAR10KP, CIFAR100KP
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR TRADES Adversarial Training')
 parser.add_argument('--batch-size', type=int, default=128, metavar='N',
@@ -53,7 +53,7 @@ parser.add_argument('--model-dir', default='./model-cifar-wideResNet/',
                     help='directory of model for saving checkpoint')
 parser.add_argument('--save-freq', '-s', default=20, type=int, metavar='N',
                     help='save frequency')
-parser.add_argument('--model', default='wideresnet', choices=['wideresnet', 'densenet', 'preactresnet'],
+parser.add_argument('--model', default='preactresnet', choices=['wideresnet', 'densenet', 'preactresnet'],
                     help='AT model name')
 parser.add_argument('--AT-method', type=str, default='ST',
                     help='AT method', choices=['TRADES', 'PGD', 'ST'])
@@ -68,13 +68,16 @@ parser.add_argument('--droprate', type=float, default=0.0, metavar='N',
 # keep label data
 parser.add_argument('--percent', default=0.1, type=float, help='Percentage of deleted data')
 
+# training on dataset
+parser.add_argument('--dataset', default='CIFAR10', choices=['CIFAR10', 'CIFAR100', 'SLT10'], help='train model on dataset')
+
 args = parser.parse_args()
 
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
 print(args)
 # settings
 
-model_dir = args.model_dir + args.model + '/' + args.AT_method + '/kplabel' + '/percent_'+str(args.percent)
+model_dir = args.model_dir + args.model + '/' + args.AT_method + '_' + args.dataset + '/kplabel' + '/percent_'+str(args.percent)
 print(model_dir)
 if not os.path.exists(model_dir):
     os.makedirs(model_dir)
@@ -96,10 +99,17 @@ transform_test = transforms.Compose([
     transforms.ToTensor(),
     # transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
 ])
-trainset = CIFAR10KP(root='../data', train=True, download=True, transform=transform_train, args=args)
-train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
-testset = torchvision.datasets.CIFAR10(root='../data', train=False, download=True, transform=transform_test)
-test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
+if args.dataset == 'CIFAR10':
+    trainset = CIFAR10KP(root='../data', train=True, download=True, transform=transform_train, args=args)
+    train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
+    testset = torchvision.datasets.CIFAR10(root='../data', train=False, download=True, transform=transform_test)
+    test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
+elif args.dataset == 'CIFAR100':
+    # trainset = datasets.CIFAR100(root='../data', train=True, download=True, transform=transform_train)
+    trainset = CIFAR100KP(root='../data', train=True, download=True, transform=transform_train, args=args)
+    train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
+    testset = torchvision.datasets.CIFAR100(root='../data', train=False, download=True, transform=transform_test)
+    test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
 
 
 def train(args, model, device, train_loader, optimizer, epoch, logger):
@@ -199,7 +209,10 @@ def main():
     elif args.model == 'densenet':
         model = nn.DataParallel(DenseNet121().cuda())
     elif args.model == 'preactresnet':  # model 小，需要降 lr
-        model = nn.DataParallel(create_network().cuda())
+        if args.dataset == 'CIFAR100':
+            model = nn.DataParallel(create_network(num_classes=100).cuda())
+        elif args.dataset == 'CIFAR10':
+            model = nn.DataParallel(create_network(num_classes=10).cuda())
         args.lr = 0.01
         args.weight_decay = 5e-4
 
