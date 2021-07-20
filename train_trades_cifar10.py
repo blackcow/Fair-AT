@@ -19,6 +19,8 @@ from tradesfair import trades_fair_loss
 from pgd import pgd_loss
 from torch.utils.tensorboard import SummaryWriter
 
+from cifar10_keeplabel import CIFAR10KP, CIFAR100KP
+
 parser = argparse.ArgumentParser(description='PyTorch CIFAR TRADES Adversarial Training')
 parser.add_argument('--batch-size', type=int, default=128, metavar='N',
                     help='input batch size for training (default: 128)')
@@ -69,6 +71,12 @@ parser.add_argument('--T', default=0.1, type=float, help='Temperature, default=0
 parser.add_argument('--lamda', default=1, type=int, help='lamda of fairloss, default=10')
 parser.add_argument('--fl_lamda', default=0.1, type=float, help='lamda of fairloss, default=10')
 
+# keep label data
+# parser.add_argument('--percent', default=0.1, type=float, help='Percentage of deleted data')
+
+# training on dataset
+parser.add_argument('--dataset', default='CIFAR10', choices=['CIFAR10', 'CIFAR100', 'SLT10'], help='train model on dataset')
+
 args = parser.parse_args()
 
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
@@ -85,7 +93,9 @@ if args.fair is not None:
     model_dir = args.model_dir + args.model + '/' + args.AT_method +\
                 '_fair_' + args.fair + '_fl_' + args.fairloss + '_T' + str(args.T)+'_L' + str(args.lamda)
 else:
-    model_dir = args.model_dir + args.model + '/' + args.AT_method
+    # model_dir = args.model_dir + args.model + '/' + args.AT_method
+    # model_dir = args.model_dir + args.model + '/' + args.AT_method + '_' + args.dataset + '/kplabel' + '/percent_' + str(args.percent)
+    model_dir = args.model_dir + args.model + '/' + args.AT_method + '_' + args.dataset
 
 print(model_dir)
 if not os.path.exists(model_dir):
@@ -106,10 +116,16 @@ transform_test = transforms.Compose([
     transforms.ToTensor(),
     # transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
 ])
-trainset = torchvision.datasets.CIFAR10(root='../data', train=True, download=True, transform=transform_train)
-train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
-testset = torchvision.datasets.CIFAR10(root='../data', train=False, download=True, transform=transform_test)
-test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
+if args.dataset == 'CIFAR10':
+    trainset = torchvision.datasets.CIFAR10(root='../data', train=True, download=True, transform=transform_train)
+    train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
+    testset = torchvision.datasets.CIFAR10(root='../data', train=False, download=True, transform=transform_test)
+    test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
+elif args.dataset == 'CIFAR100':
+    trainset = torchvision.datasets.CIFAR100(root='../data', train=True, download=True, transform=transform_train)
+    train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
+    testset = torchvision.datasets.CIFAR100(root='../data', train=False, download=True, transform=transform_test)
+    test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
 
 def eval_train(model, device, train_loader, logger):
     model.eval()
@@ -318,8 +334,11 @@ def main():
         model = nn.DataParallel(WideResNet(depth=args.depth, widen_factor=args.widen_factor, dropRate=args.droprate)).cuda()
     elif args.model == 'densenet':
         model = nn.DataParallel(DenseNet121().cuda())
-    elif args.model == 'preactresnet':# model 小，需要降 lr
-        model = nn.DataParallel(create_network().cuda())
+    elif args.model == 'preactresnet':  # model 小，需要降 lr
+        if args.dataset == 'CIFAR100':
+            model = nn.DataParallel(create_network(num_classes=100).cuda())
+        elif args.dataset == 'CIFAR10':
+            model = nn.DataParallel(create_network(num_classes=10).cuda())
         args.lr = 0.01
         args.weight_decay = 5e-4
 
@@ -346,19 +365,20 @@ def main():
         writer.add_scalars(graph_name, {'training_acc': training_accuracy, 'test_accuracy': test_accuracy}, epoch)
 
         # save checkpoint
-        # if epoch % args.save_freq == 0 and epoch > 50 or epoch == 74 or epoch == 75 or epoch == 76:
         if epoch % args.save_freq == 0 or epoch == 74 or epoch == 75 or epoch == 76:
             # torch.save(model.state_dict(),
             #            os.path.join(model_dir, 'model-wideres-epoch{}.pt'.format(epoch)))
             # torch.save(optimizer.state_dict(),
             #            os.path.join(model_dir, 'opt-wideres-checkpoint_epoch{}.tar'.format(epoch)))
+            # 只保存模型参数
+            torch.save(model.state_dict(), os.path.join(model_dir, 'model-wideres-epoch{}.pt'.format(epoch)))
             # 合并保存
-            checkpoint = {
-                "net": model.state_dict(),
-                'optimizer': optimizer.state_dict(),
-                "epoch": epoch
-            }
-            torch.save(checkpoint, os.path.join(model_dir, 'ckpt-epoch{}.pt'.format(epoch)))
+            # checkpoint = {
+            #     "net": model.state_dict(),
+            #     'optimizer': optimizer.state_dict(),
+            #     "epoch": epoch
+            # }
+            # torch.save(checkpoint, os.path.join(model_dir, 'ckpt-epoch{}.pt'.format(epoch)))
 
     writer.close()
 if __name__ == '__main__':
