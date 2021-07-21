@@ -19,7 +19,7 @@ from models.preactresnet import create_network
 from models.resnet import *
 
 from trades import trades_loss
-from cifar10_rmlabel import CIFAR10RM
+from dataset.cifar10_rmlabel import CIFAR10RM
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR TRADES Adversarial Training')
 parser.add_argument('--batch-size', type=int, default=128, metavar='N',

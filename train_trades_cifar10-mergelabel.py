@@ -21,7 +21,7 @@ from trades import trades_loss
 from tradesfair import trades_fair_loss
 from pgd import pgd_loss
 from torch.utils.tensorboard import SummaryWriter
-from cifar10_mglabel import CIFAR10MG
+from dataset.cifar10_mglabel import CIFAR10MG
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR TRADES Adversarial Training')
 parser.add_argument('--batch-size', type=int, default=128, metavar='N',
