@@ -95,8 +95,8 @@ if args.fair is not None:
 else:
     # model_dir = args.model_dir + args.model + '/' + args.AT_method
     # model_dir = args.model_dir + args.model + '/' + args.AT_method + '_' + args.dataset + '/kplabel' + '/percent_' + str(args.percent)
-    model_dir = args.model_dir + args.model + '/' + args.AT_method + '_' + args.dataset
-
+    # model_dir = args.model_dir + args.model + '/' + args.AT_method + '_' + args.dataset
+    model_dir = args.model_dir + args.model + '/' + args.AT_method + '_' + args.dataset + '/seed' + str(args.seed)
 print(model_dir)
 if not os.path.exists(model_dir):
     os.makedirs(model_dir)
