@@ -111,6 +111,12 @@ transform_test = transforms.Compose([
     transforms.ToTensor(),
     # transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
 ])
+transform_train_STL10 = transforms.Compose([
+    transforms.RandomCrop(96, padding=4),
+    transforms.RandomHorizontalFlip(),
+    transforms.ToTensor(),
+    # transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+])
 if args.dataset == 'CIFAR10':
     trainset = torchvision.datasets.CIFAR10(root='../data', train=True, download=True, transform=transform_train)
     train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
@@ -121,6 +127,13 @@ elif args.dataset == 'CIFAR100':
     train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
     testset = torchvision.datasets.CIFAR100(root='../data', train=False, download=True, transform=transform_test)
     test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
+elif args.dataset == 'STL10':
+    # trainset = torchvision.datasets.STL10(root='../data', split='test', folds=None, transform=transform_train_STL10, target_transform=None, download=True)
+    trainset = torchvision.datasets.STL10(root='../data', split='train', folds=None, transform=transform_train_STL10, target_transform=None, download=True)
+    train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
+    testset = torchvision.datasets.STL10(root='../data', split='test', folds=None, transform=transform_train_STL10, target_transform=None, download=True)
+    test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
+
 
 def eval_train(model, device, train_loader, logger):
     model.eval()

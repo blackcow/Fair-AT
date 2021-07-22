@@ -97,7 +97,7 @@ class CIFAR10KP(data.Dataset):
 
         self.data = np.vstack(self.data).reshape(-1, 3, 32, 32)
         self.data = self.data.transpose((0, 2, 3, 1))  # convert to HWC
-        # 对 label 排序（0-9），list
+        # 对 label 排序（0-N），list
         sorted_nums = sorted(enumerate(self.targets), key=lambda x: x[1])
         idx = [i[0] for i in sorted_nums]
         self.targets = [i[1] for i in sorted_nums]

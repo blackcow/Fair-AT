@@ -48,12 +48,13 @@ class STL10(VisionDataset):
     ]
     splits = ('train', 'train+unlabeled', 'unlabeled', 'test')
 
-    def __init__(self, root, split='train', folds=None, transform=None,
+    def __init__(self, root, args, split='train', folds=None, transform=None,
                  target_transform=None, download=False):
         super(STL10, self).__init__(root, transform=transform,
                                     target_transform=target_transform)
         self.split = verify_str_arg(split, "split", self.splits)
         self.folds = self._verify_folds(folds)
+        self.args = args
 
         if download:
             self.download()
@@ -83,6 +84,28 @@ class STL10(VisionDataset):
         else:  # self.split == 'test':
             self.data, self.labels = self.__loadfile(
                 self.test_list[0][0], self.test_list[1][0])
+
+        # 对 label 排序（0-9），list
+        sorted_nums = sorted(enumerate(self.labels), key=lambda x: x[1])
+        idx = [i[0] for i in sorted_nums]
+        self.targets = [i[1] for i in sorted_nums]
+        # 对 data 排序，ndarry
+        self.data = self.data[idx]
+        data_tmp = []
+        targets_tmp = []
+
+        # 确定保留元素的位置(每 5k 为 1 个 label)
+        percent = self.args.percent
+        for i in range(10):
+            start = i * 500
+            end = int(start + 500 * percent)
+            targets_tmp = targets_tmp + self.targets[start:end]
+            if i == 0:
+                data_tmp = self.data[start:end]
+            else:
+                data_tmp = np.concatenate((data_tmp, self.data[start:end]), axis=0)
+        self.data1 = data_tmp
+        self.labels1 = targets_tmp
 
         class_file = os.path.join(
             self.root, self.base_folder, self.class_names_file)

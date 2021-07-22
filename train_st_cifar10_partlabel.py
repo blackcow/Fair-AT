@@ -107,8 +107,8 @@ transform_train_STL10 = transforms.Compose([
     # transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
 ])
 if args.dataset == 'CIFAR10':
-    trainset = torchvision.datasets.CIFAR10(root='../data', train=True, download=True, transform=transform_train)
-    # trainset = CIFAR10KP(root='../data', train=True, download=True, transform=transform_train, args=args)
+    # trainset = torchvision.datasets.CIFAR10(root='../data', train=True, download=True, transform=transform_train)
+    trainset = CIFAR10KP(root='../data', train=True, download=True, transform=transform_train, args=args)
     train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
     testset = torchvision.datasets.CIFAR10(root='../data', train=False, download=True, transform=transform_test)
     test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
@@ -120,7 +120,7 @@ elif args.dataset == 'CIFAR100':
     test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
 elif args.dataset == 'STL10':
     # trainset = torchvision.datasets.STL10(root='../data', split='test', folds=None, transform=transform_train_STL10, target_transform=None, download=True)
-    trainset = STL10(root='../data', split='train', folds=None, transform=transform_train_STL10, target_transform=None, download=True)
+    trainset = STL10(root='../data', split='train', folds=None, transform=transform_train_STL10, target_transform=None, download=True, args=args)
     train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
     testset = torchvision.datasets.STL10(root='../data', split='test', folds=None, transform=transform_train_STL10, target_transform=None, download=True)
     test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
