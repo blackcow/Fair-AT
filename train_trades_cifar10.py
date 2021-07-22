@@ -352,6 +352,8 @@ def main():
             model = nn.DataParallel(create_network(num_classes=100).cuda())
         elif args.dataset == 'CIFAR10':
             model = nn.DataParallel(create_network(num_classes=10).cuda())
+        elif args.dataset == 'STL10':
+            model = nn.DataParallel(create_network(num_classes=10).cuda())
         args.lr = 0.01
         args.weight_decay = 5e-4
 
