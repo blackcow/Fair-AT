@@ -12,7 +12,8 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 import time
 import logging
-
+import numpy as np
+import random
 from models.wideresnet import *
 from models.densenet import *
 from models.preactresnet import create_network
@@ -79,14 +80,12 @@ os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
 print(args)
 # settings
 
-model_dir = args.model_dir + args.model + '/' + args.AT_method + '_' + args.dataset + '/kplabel' + '/percent_' + str(
-    args.percent)
+model_dir = args.model_dir + args.model + '/' + args.AT_method + '_' + args.dataset + '/kplabel_seed' + str(args.seed) + '/percent_' + str(args.percent)
 print(model_dir)
 if not os.path.exists(model_dir):
     os.makedirs(model_dir)
 
 use_cuda = not args.no_cuda and torch.cuda.is_available()
-torch.manual_seed(args.seed)
 device = torch.device("cuda" if use_cuda else "cpu")
 kwargs = {'num_workers': 4, 'pin_memory': True} if use_cuda else {}
 
@@ -215,9 +214,17 @@ def get_logger(filename, verbosity=1, name=None):
 
     return logger
 
+def set_random_seed(seed, deterministic=False):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.cuda.manual_seed(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.backends.cudnn.deterministic = True
 
 def main():
     # init model, ResNet18() can be also used here for training
+    set_random_seed(args.seed)
     if args.model == 'wideresnet':
         model = nn.DataParallel(
             WideResNet(depth=args.depth, widen_factor=args.widen_factor, dropRate=args.droprate)).cuda()
