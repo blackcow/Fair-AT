@@ -18,7 +18,7 @@ from trades import trades_loss
 from tradesfair import trades_fair_loss
 from pgd import pgd_loss
 from torch.utils.tensorboard import SummaryWriter
-
+import random
 from dataset.cifar10_keeplabel import CIFAR10KP, CIFAR100KP
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR TRADES Adversarial Training')
@@ -83,11 +83,6 @@ os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
 print(args)
 # settings save model path
 factors = 'e' + str(args.epsilon) + '_depth' + str(args.depth) + '_' + 'widen' + str(args.widen_factor) + '_' + 'drop' + str(args.droprate)
-# if args.fair is not None:
-#     model_dir = args.model_dir + args.model + '/' + args.AT_method +\
-#                 '_fair_' + args.fair + '_fl_' + args.fairloss + '_T' + str(args.T)+'_L' + str(args.lamda) + '/' + factors
-# else:
-#     model_dir = args.model_dir + args.model + '/' + args.AT_method + '/' + factors
 
 if args.fair is not None:
     model_dir = args.model_dir + args.model + '/' + args.AT_method +\
@@ -322,11 +317,16 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
                 epoch, batch_idx * len(data), len(train_loader.dataset),
                        100. * batch_idx / len(train_loader), loss.item()))
 
+def set_random_seed(seed, deterministic=False):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.cuda.manual_seed(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.backends.cudnn.deterministic = True
 
 def main():
-    np.random.seed(args.seed)
-    torch.manual_seed(args.seed)
-    torch.cuda.manual_seed(args.seed)
+    set_random_seed(args.seed)
     # init tensorboard
     writer = SummaryWriter(comment='test_comment', filename_suffix="test_suffix")
     # init model, ResNet18() can be also used here for training
