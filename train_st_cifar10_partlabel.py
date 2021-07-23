@@ -18,10 +18,12 @@ from models.wideresnet import *
 from models.densenet import *
 from models.preactresnet import create_network
 from models.resnet import *
+from models.resnet_imagnette import dct_resnet
 
 from trades import trades_loss
 from dataset.cifar10_keeplabel import CIFAR10KP, CIFAR100KP
 from dataset.stl10_keeplabel import STL10
+from dataset.imagnette import *
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR TRADES Adversarial Training')
 parser.add_argument('--batch-size', type=int, default=128, metavar='N',
@@ -71,7 +73,7 @@ parser.add_argument('--droprate', type=float, default=0.0, metavar='N',
 parser.add_argument('--percent', default=0.1, type=float, help='Percentage of deleted data')
 
 # training on dataset
-parser.add_argument('--dataset', default='CIFAR10', choices=['CIFAR10', 'CIFAR100', 'STL10'],
+parser.add_argument('--dataset', default='CIFAR10', choices=['CIFAR10', 'CIFAR100', 'STL10', 'Imagnette'],
                     help='train model on dataset')
 
 args = parser.parse_args()
@@ -104,8 +106,13 @@ transform_train_STL10 = transforms.Compose([
     transforms.RandomCrop(96, padding=4),
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
-    # transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
 ])
+transform_train_Imagnette = transforms.Compose([
+    transforms.RandomCrop(96, padding=4),
+    transforms.RandomHorizontalFlip(),
+    transforms.ToTensor(),
+])
+
 if args.dataset == 'CIFAR10':
     # trainset = torchvision.datasets.CIFAR10(root='../data', train=True, download=True, transform=transform_train)
     trainset = CIFAR10KP(root='../data', train=True, download=True, transform=transform_train, args=args)
@@ -124,6 +131,14 @@ elif args.dataset == 'STL10':
     train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
     testset = torchvision.datasets.STL10(root='../data', split='test', folds=None, transform=transform_train_STL10, target_transform=None, download=True)
     test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
+elif args.dataset == 'Imagnette':
+    trainset = ImagenetteTrain('train')
+    train_loader = torch.utils.data.DataLoader(trainset, batch_size=64, shuffle=True)
+    val_dataset = ImagenetteTrain('val')
+    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=64, shuffle=False)
+    testset = ImagenetteTest()
+    test_loader = torch.utils.data.DataLoader(testset, batch_size=64, shuffle=False)
+
 
 
 def train(args, model, device, train_loader, optimizer, epoch, logger):
@@ -236,6 +251,8 @@ def main():
         elif args.dataset == 'CIFAR10':
             model = nn.DataParallel(create_network(num_classes=10).cuda())
         elif args.dataset == 'STL10':
+            model = nn.DataParallel(create_network(num_classes=10).cuda())
+        elif args.dataset == 'Imagnette':
             model = nn.DataParallel(create_network(num_classes=10).cuda())
         args.lr = 0.01
         args.weight_decay = 5e-4
