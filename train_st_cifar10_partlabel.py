@@ -139,7 +139,7 @@ elif args.dataset == 'Imagnette':
     train_loader = torch.utils.data.DataLoader(trainset, batch_size=64, shuffle=True)
     val_dataset = ImagenetteTrain('val')
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=64, shuffle=False)
-    testset = ImagenetteTest()
+    testset = ImagenetteTest('val')
     test_loader = torch.utils.data.DataLoader(testset, batch_size=64, shuffle=False)
 
 
