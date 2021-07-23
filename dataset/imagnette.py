@@ -19,8 +19,11 @@ import shutil
 from dataset.transforms import upscale, center_crop
 
 HOME_DIR = os.getcwd()
-imagenette_train_dir = '../data/imagenette2-320/train/'
-imagenette_val_dir = '../data/imagenette2-320/val/'
+# imagenette_train_dir = '../data/imagenette2-320/train/'
+# imagenette_val_dir = '../data/imagenette2-320/val/'
+
+imagenette_train_dir = '../data/imagenette2-160/train/'
+imagenette_val_dir = '../data/imagenette2-160/val/'
 
 def class_to_idx(data_path):
     dataset = torchvision.datasets.ImageFolder(data_path)
@@ -242,10 +245,11 @@ class ImagenetteTrain():
             img, target = self.val_data[idx], self.val_labels[idx]
         else:
             img, target = self.train_data[idx], self.train_labels[idx]
-        img = center_crop(img, (320, 320))
+        # img, crop_img_val = center_crop(img, (320, 320))
+        img, crop_img_val = center_crop(img, (160, 160))
         # print(img)
         # dct_y, dct_cb, dct_cr = load(img)
-        y_mean, cb_mean, cr_mean = np.load(HOME_DIR + '/dataset/imagnette/avgs_imagenette_320.npy')
+        # y_mean, cb_mean, cr_mean = np.load(HOME_DIR + '/dataset/imagnette/avgs_imagenette_320.npy')
         # y_std, cb_std, cr_std = np.load(HOME_DIR + '/dataset/imagnette/stds_imagenette_320.npy')
         # dct_cb = upscale(dct_cb)
         # dct_cr = upscale(dct_cr)
@@ -258,8 +262,10 @@ class ImagenetteTrain():
         #
         # val = torch.cat((dct_y_t, dct_cb_t, dct_cr_t), dim=2)
 
-        cb_mean = upscale(cb_mean)
-        return img, target
+        # cb_mean = upscale(cb_mean)
+        crop_img_val = torch.from_numpy(crop_img_val).float()
+        crop_img_val = crop_img_val.permute(2, 0, 1)
+        return crop_img_val, target
         # return val, target
 
     def __len__(self):
@@ -290,7 +296,8 @@ class ImagenetteTest():
 
     def __getitem__(self, idx):
         img, target = self.test_data[idx], self.test_labels[idx]
-        img = center_crop(img, (320, 320))
+        # img = center_crop(img, (320, 320))
+        img, crop_img_val = center_crop(img, (160, 160))
         # dct_y, dct_cb, dct_cr = load(img)
         # y_mean, cb_mean, cr_mean = np.load(HOME_DIR + '/dataset/imagnette/avgs_imagenette_320.npy')
         # y_std, cb_std, cr_std = np.load(HOME_DIR + '/dataset/imagnette/stds_imagenette_320.npy')
@@ -308,7 +315,9 @@ class ImagenetteTest():
         # dct_cb_t = torch.from_numpy(dct_cb).float()
         #
         # val = torch.cat((dct_y_t, dct_cb_t, dct_cr_t), dim=2)
-        return img, target
+        crop_img_val = torch.from_numpy(crop_img_val).float()
+        crop_img_val = crop_img_val.permute(2, 0, 1)
+        return crop_img_val, target
         # return val, target
 
     def __len__(self):
