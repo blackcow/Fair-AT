@@ -109,7 +109,7 @@ transform_train_STL10 = transforms.Compose([
     transforms.ToTensor(),
 ])
 transform_train_Imagnette = transforms.Compose([
-    transforms.RandomCrop(96, padding=4),
+    transforms.RandomCrop(160, padding=4),
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
 ])
@@ -136,7 +136,7 @@ elif args.dataset == 'STL10':
     test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
 elif args.dataset == 'Imagnette':
     trainset = ImagenetteTrain('train')
-    train_loader = torch.utils.data.DataLoader(trainset, batch_size=2, shuffle=True)
+    train_loader = torch.utils.data.DataLoader(trainset, batch_size=64, shuffle=True)
     val_dataset = ImagenetteTrain('val')
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=64, shuffle=False)
     testset = ImagenetteTest()

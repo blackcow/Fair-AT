@@ -19,11 +19,16 @@ import shutil
 from dataset.transforms import upscale, center_crop
 
 HOME_DIR = os.getcwd()
-# imagenette_train_dir = '../data/imagenette2-320/train/'
-# imagenette_val_dir = '../data/imagenette2-320/val/'
 
-imagenette_train_dir = '../data/imagenette2-160/train/'
-imagenette_val_dir = '../data/imagenette2-160/val/'
+center_crop_size = 160
+
+if center_crop_size == 160:
+    imagenette_train_dir = '../data/imagenette2-160/train/'
+    imagenette_val_dir = '../data/imagenette2-160/val/'
+elif center_crop_size == 320:
+    imagenette_train_dir = '../data/imagenette2-320/train/'
+    imagenette_val_dir = '../data/imagenette2-320/val/'
+
 
 def class_to_idx(data_path):
     dataset = torchvision.datasets.ImageFolder(data_path)
@@ -245,8 +250,7 @@ class ImagenetteTrain():
             img, target = self.val_data[idx], self.val_labels[idx]
         else:
             img, target = self.train_data[idx], self.train_labels[idx]
-        # crop_img_val = center_crop(img, (320, 320))
-        crop_img_val = center_crop(img, (160, 160))
+        crop_img_val = center_crop(img, (center_crop_size, center_crop_size))
         # print(img)
         # dct_y, dct_cb, dct_cr = load(img)
         # y_mean, cb_mean, cr_mean = np.load(HOME_DIR + '/dataset/imagnette/avgs_imagenette_320.npy')
@@ -296,8 +300,7 @@ class ImagenetteTest():
 
     def __getitem__(self, idx):
         img, target = self.test_data[idx], self.test_labels[idx]
-        # crop_img_val = center_crop(img, (320, 320))
-        crop_img_val = center_crop(img, (160, 160))
+        crop_img_val = center_crop(img, (center_crop_size, center_crop_size))
         # dct_y, dct_cb, dct_cr = load(img)
         # y_mean, cb_mean, cr_mean = np.load(HOME_DIR + '/dataset/imagnette/avgs_imagenette_320.npy')
         # y_std, cb_std, cr_std = np.load(HOME_DIR + '/dataset/imagnette/stds_imagenette_320.npy')
