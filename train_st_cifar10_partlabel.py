@@ -82,7 +82,8 @@ os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
 print(args)
 # settings
 
-model_dir = args.model_dir + args.model + '/' + args.AT_method + '_' + args.dataset + '/kplabel_seed' + str(args.seed) + '/percent_' + str(args.percent)
+model_dir = args.model_dir + args.model + '/' + args.AT_method + '_' + args.dataset + '/kplabel_seed' + str(
+    args.seed) + '/percent_' + str(args.percent)
 print(model_dir)
 if not os.path.exists(model_dir):
     os.makedirs(model_dir)
@@ -127,18 +128,19 @@ elif args.dataset == 'CIFAR100':
     test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
 elif args.dataset == 'STL10':
     # trainset = torchvision.datasets.STL10(root='../data', split='test', folds=None, transform=transform_train_STL10, target_transform=None, download=True)
-    trainset = STL10(root='../data', split='train', folds=None, transform=transform_train_STL10, target_transform=None, download=True, args=args)
+    trainset = STL10(root='../data', split='train', folds=None, transform=transform_train_STL10, target_transform=None,
+                     download=True, args=args)
     train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
-    testset = torchvision.datasets.STL10(root='../data', split='test', folds=None, transform=transform_train_STL10, target_transform=None, download=True)
+    testset = torchvision.datasets.STL10(root='../data', split='test', folds=None, transform=transform_train_STL10,
+                                         target_transform=None, download=True)
     test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
 elif args.dataset == 'Imagnette':
     trainset = ImagenetteTrain('train')
-    train_loader = torch.utils.data.DataLoader(trainset, batch_size=64, shuffle=True)
+    train_loader = torch.utils.data.DataLoader(trainset, batch_size=2, shuffle=True)
     val_dataset = ImagenetteTrain('val')
     val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=64, shuffle=False)
     testset = ImagenetteTest()
     test_loader = torch.utils.data.DataLoader(testset, batch_size=64, shuffle=False)
-
 
 
 def train(args, model, device, train_loader, optimizer, epoch, logger):
@@ -229,6 +231,7 @@ def get_logger(filename, verbosity=1, name=None):
 
     return logger
 
+
 def set_random_seed(seed, deterministic=False):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
@@ -236,6 +239,7 @@ def set_random_seed(seed, deterministic=False):
     np.random.seed(seed)
     random.seed(seed)
     torch.backends.cudnn.deterministic = True
+
 
 def main():
     # init model, ResNet18() can be also used here for training

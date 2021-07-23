@@ -245,8 +245,8 @@ class ImagenetteTrain():
             img, target = self.val_data[idx], self.val_labels[idx]
         else:
             img, target = self.train_data[idx], self.train_labels[idx]
-        # img, crop_img_val = center_crop(img, (320, 320))
-        img, crop_img_val = center_crop(img, (160, 160))
+        # crop_img_val = center_crop(img, (320, 320))
+        crop_img_val = center_crop(img, (160, 160))
         # print(img)
         # dct_y, dct_cb, dct_cr = load(img)
         # y_mean, cb_mean, cr_mean = np.load(HOME_DIR + '/dataset/imagnette/avgs_imagenette_320.npy')
@@ -296,8 +296,8 @@ class ImagenetteTest():
 
     def __getitem__(self, idx):
         img, target = self.test_data[idx], self.test_labels[idx]
-        # img = center_crop(img, (320, 320))
-        img, crop_img_val = center_crop(img, (160, 160))
+        # crop_img_val = center_crop(img, (320, 320))
+        crop_img_val = center_crop(img, (160, 160))
         # dct_y, dct_cb, dct_cr = load(img)
         # y_mean, cb_mean, cr_mean = np.load(HOME_DIR + '/dataset/imagnette/avgs_imagenette_320.npy')
         # y_std, cb_std, cr_std = np.load(HOME_DIR + '/dataset/imagnette/stds_imagenette_320.npy')
