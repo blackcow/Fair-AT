@@ -20,6 +20,7 @@ from pgd import pgd_loss
 from torch.utils.tensorboard import SummaryWriter
 import random
 from dataset.cifar10_keeplabel import CIFAR10KP, CIFAR100KP
+from dataset.imagnette import *
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR TRADES Adversarial Training')
 parser.add_argument('--batch-size', type=int, default=128, metavar='N',
@@ -133,7 +134,14 @@ elif args.dataset == 'STL10':
     train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
     testset = torchvision.datasets.STL10(root='../data', split='test', folds=None, transform=transform_train_STL10, target_transform=None, download=True)
     test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
-
+elif args.dataset == 'Imagnette':
+    trainset = ImagenetteTrain('train')
+    train_loader = torch.utils.data.DataLoader(trainset, batch_size=64, shuffle=True)
+    val_dataset = ImagenetteTrain('val')
+    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=64, shuffle=False)
+    testset = ImagenetteTrain('val')
+    # testset = ImagenetteTest()
+    test_loader = torch.utils.data.DataLoader(testset, batch_size=64, shuffle=False)
 
 def eval_train(model, device, train_loader, logger):
     model.eval()
@@ -353,6 +361,8 @@ def main():
         elif args.dataset == 'CIFAR10':
             model = nn.DataParallel(create_network(num_classes=10).cuda())
         elif args.dataset == 'STL10':
+            model = nn.DataParallel(create_network(num_classes=10).cuda())
+        elif args.dataset == 'Imagnette':
             model = nn.DataParallel(create_network(num_classes=10).cuda())
         args.lr = 0.01
         args.weight_decay = 5e-4
