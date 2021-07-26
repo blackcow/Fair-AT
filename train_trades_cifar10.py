@@ -75,7 +75,7 @@ parser.add_argument('--fl_lamda', default=0.1, type=float, help='lamda of fairlo
 # parser.add_argument('--percent', default=0.1, type=float, help='Percentage of deleted data')
 
 # training on dataset
-parser.add_argument('--dataset', default='CIFAR10', choices=['CIFAR10', 'CIFAR100', 'STL10'], help='train model on dataset')
+parser.add_argument('--dataset', default='CIFAR10', choices=['CIFAR10', 'CIFAR100', 'STL10', 'Imagnette'], help='train model on dataset')
 
 args = parser.parse_args()
 
