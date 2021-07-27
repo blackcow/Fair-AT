@@ -101,8 +101,8 @@ class SVHNKP(VisionDataset):
         start = 0
         for i in range(len(dict)):
             end = int(start + dict[i] * percent)
-            print('start:', start)
-            print('end:', end)
+            print('start:{}  end:{}'.format(start,end))
+            # print('end:', end)
             labels_tmp = labels_tmp + self.labels[start:end]
             if i == 0:
                 data_tmp = self.data[start:end]
