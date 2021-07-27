@@ -35,6 +35,117 @@ def class_to_idx(data_path):
     return dataset.class_to_idx
 
 
+class ImagenetteTrain():
+    def __init__(self, datatype):
+        self.datatype = datatype
+        self.class_to_label = class_to_idx(imagenette_train_dir)
+        self.train_data, self.train_labels, self.val_data, self.val_labels = self.process_data()
+
+    def process_data(self):
+        train_data = []
+        train_labels = []
+        val_data = []
+        val_labels = []
+        with open(HOME_DIR + '/dataset/imagnette/train_list_imagenette.json') as t:
+            train_dict = json.load(t)
+        with open(HOME_DIR + '/dataset/imagnette/val_list_imagenette.json') as v:
+            val_dict = json.load(v)
+        for class_name in train_dict:
+            class_label = self.class_to_label[class_name]
+            for img_file in train_dict[class_name]:
+                full_path = imagenette_train_dir + class_name + '/' + img_file
+                train_data.append(full_path)
+                train_labels.append(class_label)
+            for val_file in val_dict[class_name]:
+                full_path = imagenette_train_dir + class_name + '/' + val_file
+                val_data.append(full_path)
+                val_labels.append(class_label)
+        train_labels = np.asarray(train_labels, dtype=np.int)
+        val_labels = np.asarray(val_labels, dtype=np.int)
+        return train_data, train_labels, val_data, val_labels
+
+    def __getitem__(self, idx):
+        if self.datatype == 'val':
+            img, target = self.val_data[idx], self.val_labels[idx]
+        else:
+            img, target = self.train_data[idx], self.train_labels[idx]
+        crop_img_val = center_crop(img, (center_crop_size, center_crop_size))
+        # print(img)
+        # dct_y, dct_cb, dct_cr = load(img)
+        # y_mean, cb_mean, cr_mean = np.load(HOME_DIR + '/dataset/imagnette/avgs_imagenette_320.npy')
+        # y_std, cb_std, cr_std = np.load(HOME_DIR + '/dataset/imagnette/stds_imagenette_320.npy')
+        # dct_cb = upscale(dct_cb)
+        # dct_cr = upscale(dct_cr)
+        # dct_y = np.divide(np.subtract(dct_y, y_mean), y_std)
+        # dct_cb = np.divide(np.subtract(dct_cb, cb_mean), cb_std)
+        # dct_cr = np.divide(np.subtract(dct_cr, cr_mean), cr_std)
+        # dct_y_t = torch.from_numpy(dct_y).float()
+        # dct_cr_t = torch.from_numpy(dct_cr).float()
+        # dct_cb_t = torch.from_numpy(dct_cb).float()
+        #
+        # val = torch.cat((dct_y_t, dct_cb_t, dct_cr_t), dim=2)
+
+        # cb_mean = upscale(cb_mean)
+        crop_img_val = torch.from_numpy(crop_img_val).float()
+        crop_img_val = crop_img_val.permute(2, 0, 1)
+        return crop_img_val, target
+        # return val, target
+
+    def __len__(self):
+        if self.datatype == 'val':
+            return len(self.val_labels)
+        else:
+            return len(self.train_labels)
+
+
+class ImagenetteTest():
+    def __init__(self):
+        self.class_to_label = class_to_idx(imagenette_val_dir)
+        self.test_data, self.test_labels = self.process_data()
+
+    def process_data(self):
+        data = []
+        labels = []
+        with open(HOME_DIR + '/dataset/imagnette/val_list_imagenette.json') as v:
+            test_dict = json.load(v)
+        for class_name in test_dict:
+            class_label = self.class_to_label[class_name]
+            for img_file in test_dict[class_name]:
+                full_path = imagenette_val_dir + class_name + '/' + img_file
+                data.append(full_path)
+                labels.append(class_label)
+        labels = np.asarray(labels, dtype=np.int)
+        return data, labels
+
+    def __getitem__(self, idx):
+        img, target = self.test_data[idx], self.test_labels[idx]
+        crop_img_val = center_crop(img, (center_crop_size, center_crop_size))
+        # dct_y, dct_cb, dct_cr = load(img)
+        # y_mean, cb_mean, cr_mean = np.load(HOME_DIR + '/dataset/imagnette/avgs_imagenette_320.npy')
+        # y_std, cb_std, cr_std = np.load(HOME_DIR + '/dataset/imagnette/stds_imagenette_320.npy')
+        #
+        # dct_cb = upscale(dct_cb)
+        # dct_cr = upscale(dct_cr)
+        #
+        # dct_y = np.divide(np.subtract(dct_y, y_mean), y_std)
+        # dct_cb = np.divide(np.subtract(dct_cb, cb_mean), cb_std)
+        # dct_cr = np.divide(np.subtract(dct_cr, cr_mean), cr_std)
+        # dct_y_t = torch.from_numpy(dct_y).float()
+        #
+        # dct_cr_t = torch.from_numpy(dct_cr).float()
+        #
+        # dct_cb_t = torch.from_numpy(dct_cb).float()
+        #
+        # val = torch.cat((dct_y_t, dct_cb_t, dct_cr_t), dim=2)
+        crop_img_val = torch.from_numpy(crop_img_val).float()
+        crop_img_val = crop_img_val.permute(2, 0, 1)
+        return crop_img_val, target
+        # return val, target
+
+    def __len__(self):
+        return len(self.test_labels)
+
+
 class TinyImagenet():
     def __init__(self, datatype):
         self.datatype = datatype
@@ -211,117 +322,6 @@ class TinyImagenetTestRGB():
             img = tr(img)
         img = self.transfrom(img)
         return img, target
-
-    def __len__(self):
-        return len(self.test_labels)
-
-
-class ImagenetteTrain():
-    def __init__(self, datatype):
-        self.datatype = datatype
-        self.class_to_label = class_to_idx(imagenette_train_dir)
-        self.train_data, self.train_labels, self.val_data, self.val_labels = self.process_data()
-
-    def process_data(self):
-        train_data = []
-        train_labels = []
-        val_data = []
-        val_labels = []
-        with open(HOME_DIR + '/dataset/imagnette/train_list_imagenette.json') as t:
-            train_dict = json.load(t)
-        with open(HOME_DIR + '/dataset/imagnette/val_list_imagenette.json') as v:
-            val_dict = json.load(v)
-        for class_name in train_dict:
-            class_label = self.class_to_label[class_name]
-            for img_file in train_dict[class_name]:
-                full_path = imagenette_train_dir + class_name + '/' + img_file
-                train_data.append(full_path)
-                train_labels.append(class_label)
-            for val_file in val_dict[class_name]:
-                full_path = imagenette_train_dir + class_name + '/' + val_file
-                val_data.append(full_path)
-                val_labels.append(class_label)
-        train_labels = np.asarray(train_labels, dtype=np.int)
-        val_labels = np.asarray(val_labels, dtype=np.int)
-        return train_data, train_labels, val_data, val_labels
-
-    def __getitem__(self, idx):
-        if self.datatype == 'val':
-            img, target = self.val_data[idx], self.val_labels[idx]
-        else:
-            img, target = self.train_data[idx], self.train_labels[idx]
-        crop_img_val = center_crop(img, (center_crop_size, center_crop_size))
-        # print(img)
-        # dct_y, dct_cb, dct_cr = load(img)
-        # y_mean, cb_mean, cr_mean = np.load(HOME_DIR + '/dataset/imagnette/avgs_imagenette_320.npy')
-        # y_std, cb_std, cr_std = np.load(HOME_DIR + '/dataset/imagnette/stds_imagenette_320.npy')
-        # dct_cb = upscale(dct_cb)
-        # dct_cr = upscale(dct_cr)
-        # dct_y = np.divide(np.subtract(dct_y, y_mean), y_std)
-        # dct_cb = np.divide(np.subtract(dct_cb, cb_mean), cb_std)
-        # dct_cr = np.divide(np.subtract(dct_cr, cr_mean), cr_std)
-        # dct_y_t = torch.from_numpy(dct_y).float()
-        # dct_cr_t = torch.from_numpy(dct_cr).float()
-        # dct_cb_t = torch.from_numpy(dct_cb).float()
-        #
-        # val = torch.cat((dct_y_t, dct_cb_t, dct_cr_t), dim=2)
-
-        # cb_mean = upscale(cb_mean)
-        crop_img_val = torch.from_numpy(crop_img_val).float()
-        crop_img_val = crop_img_val.permute(2, 0, 1)
-        return crop_img_val, target
-        # return val, target
-
-    def __len__(self):
-        if self.datatype == 'val':
-            return len(self.val_labels)
-        else:
-            return len(self.train_labels)
-
-
-class ImagenetteTest():
-    def __init__(self):
-        self.class_to_label = class_to_idx(imagenette_val_dir)
-        self.test_data, self.test_labels = self.process_data()
-
-    def process_data(self):
-        data = []
-        labels = []
-        with open(HOME_DIR + '/dataset/imagnette/val_list_imagenette.json') as v:
-            test_dict = json.load(v)
-        for class_name in test_dict:
-            class_label = self.class_to_label[class_name]
-            for img_file in test_dict[class_name]:
-                full_path = imagenette_val_dir + class_name + '/' + img_file
-                data.append(full_path)
-                labels.append(class_label)
-        labels = np.asarray(labels, dtype=np.int)
-        return data, labels
-
-    def __getitem__(self, idx):
-        img, target = self.test_data[idx], self.test_labels[idx]
-        crop_img_val = center_crop(img, (center_crop_size, center_crop_size))
-        # dct_y, dct_cb, dct_cr = load(img)
-        # y_mean, cb_mean, cr_mean = np.load(HOME_DIR + '/dataset/imagnette/avgs_imagenette_320.npy')
-        # y_std, cb_std, cr_std = np.load(HOME_DIR + '/dataset/imagnette/stds_imagenette_320.npy')
-        #
-        # dct_cb = upscale(dct_cb)
-        # dct_cr = upscale(dct_cr)
-        #
-        # dct_y = np.divide(np.subtract(dct_y, y_mean), y_std)
-        # dct_cb = np.divide(np.subtract(dct_cb, cb_mean), cb_std)
-        # dct_cr = np.divide(np.subtract(dct_cr, cr_mean), cr_std)
-        # dct_y_t = torch.from_numpy(dct_y).float()
-        #
-        # dct_cr_t = torch.from_numpy(dct_cr).float()
-        #
-        # dct_cb_t = torch.from_numpy(dct_cb).float()
-        #
-        # val = torch.cat((dct_y_t, dct_cb_t, dct_cr_t), dim=2)
-        crop_img_val = torch.from_numpy(crop_img_val).float()
-        crop_img_val = crop_img_val.permute(2, 0, 1)
-        return crop_img_val, target
-        # return val, target
 
     def __len__(self):
         return len(self.test_labels)

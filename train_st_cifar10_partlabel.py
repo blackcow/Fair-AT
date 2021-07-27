@@ -24,6 +24,7 @@ from trades import trades_loss
 from dataset.cifar10_keeplabel import CIFAR10KP, CIFAR100KP
 from dataset.stl10_keeplabel import STL10
 from dataset.imagnette import *
+from dataset.svhn_keeplabel import *
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR TRADES Adversarial Training')
 parser.add_argument('--batch-size', type=int, default=128, metavar='N',
@@ -73,7 +74,7 @@ parser.add_argument('--droprate', type=float, default=0.0, metavar='N',
 parser.add_argument('--percent', default=0.1, type=float, help='Percentage of deleted data')
 
 # training on dataset
-parser.add_argument('--dataset', default='CIFAR10', choices=['CIFAR10', 'CIFAR100', 'STL10', 'Imagnette'],
+parser.add_argument('--dataset', default='CIFAR10', choices=['CIFAR10', 'CIFAR100', 'STL10', 'Imagnette', 'SVHN'],
                     help='train model on dataset')
 
 args = parser.parse_args()
@@ -142,6 +143,14 @@ elif args.dataset == 'Imagnette':
     testset = ImagenetteTrain('val')
     # testset = ImagenetteTest()
     test_loader = torch.utils.data.DataLoader(testset, batch_size=64, shuffle=False)
+elif args.dataset == 'SVHN':
+    trainset = SVHNKP(root='../data', split="train", transform=transform_train, download=True, args=args)
+    # trainset = torchvision.datasets.SVHN(root='../data', split="train", transform=transform_train, download=True)
+    train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
+    extraset = torchvision.datasets.SVHN(root='../data', split="extra", transform=transform_train, download=True)
+    extra_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
+    testset = torchvision.datasets.SVHN(root='../data', split="test", download=True, transform=transform_test)
+    test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
 
 
 def train(args, model, device, train_loader, optimizer, epoch, logger):
@@ -258,6 +267,8 @@ def main():
         elif args.dataset == 'STL10':
             model = nn.DataParallel(create_network(num_classes=10).cuda())
         elif args.dataset == 'Imagnette':
+            model = nn.DataParallel(create_network(num_classes=10).cuda())
+        elif args.dataset == 'SVHN':
             model = nn.DataParallel(create_network(num_classes=10).cuda())
         args.lr = 0.01
         args.weight_decay = 5e-4
