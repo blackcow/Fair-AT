@@ -142,6 +142,14 @@ elif args.dataset == 'Imagnette':
     testset = ImagenetteTrain('val')
     # testset = ImagenetteTest()
     test_loader = torch.utils.data.DataLoader(testset, batch_size=64, shuffle=False)
+elif args.dataset == 'SVHN':
+    # trainset = SVHNKP(root='../data', split="train", transform=transform_train, download=True, args=args)
+    trainset = torchvision.datasets.SVHN(root='../data', split="train", transform=transform_train, download=True)
+    train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
+    extraset = torchvision.datasets.SVHN(root='../data', split="extra", transform=transform_train, download=True)
+    extra_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
+    testset = torchvision.datasets.SVHN(root='../data', split="test", download=True, transform=transform_test)
+    test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
 
 def eval_train(model, device, train_loader, logger):
     model.eval()
@@ -358,14 +366,14 @@ def main():
     elif args.model == 'preactresnet':  # model 小，需要降 lr
         if args.dataset == 'CIFAR100':
             model = nn.DataParallel(create_network(num_classes=100).cuda())
-        elif args.dataset == 'CIFAR10':
+        elif args.dataset == 'CIFAR10' or 'STL10' or 'Imagnette' or 'SVHN':
             model = nn.DataParallel(create_network(num_classes=10).cuda())
-        elif args.dataset == 'STL10':
-            model = nn.DataParallel(create_network(num_classes=10).cuda())
-        elif args.dataset == 'Imagnette':
-            model = nn.DataParallel(create_network(num_classes=10).cuda())
-        args.lr = 0.01
-        args.weight_decay = 5e-4
+        if args.dataset =='Imagnette':  # 图片大，原有 lr 导致 loss比较大
+            args.lr = 0.005
+            args.weight_decay = 5e-4
+        else:
+            args.lr = 0.01
+            args.weight_decay = 5e-4
 
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
     logger = get_logger(model_dir + '/train.log')
