@@ -76,7 +76,7 @@ parser.add_argument('--fl_lamda', default=0.1, type=float, help='lamda of fairlo
 # parser.add_argument('--percent', default=0.1, type=float, help='Percentage of deleted data')
 
 # training on dataset
-parser.add_argument('--dataset', default='CIFAR10', choices=['CIFAR10', 'CIFAR100', 'STL10', 'Imagnette'], help='train model on dataset')
+parser.add_argument('--dataset', default='CIFAR10', choices=['CIFAR10', 'CIFAR100', 'STL10', 'Imagnette', 'SVHN'], help='train model on dataset')
 
 args = parser.parse_args()
 
@@ -146,8 +146,8 @@ elif args.dataset == 'SVHN':
     # trainset = SVHNKP(root='../data', split="train", transform=transform_train, download=True, args=args)
     trainset = torchvision.datasets.SVHN(root='../data', split="train", transform=transform_train, download=True)
     train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
-    extraset = torchvision.datasets.SVHN(root='../data', split="extra", transform=transform_train, download=True)
-    extra_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
+    # extraset = torchvision.datasets.SVHN(root='../data', split="extra", transform=transform_train, download=True)
+    # extra_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
     testset = torchvision.datasets.SVHN(root='../data', split="test", download=True, transform=transform_test)
     test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
 
