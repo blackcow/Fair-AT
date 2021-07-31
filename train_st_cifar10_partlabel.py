@@ -25,6 +25,7 @@ from dataset.cifar10_keeplabel import CIFAR10KP, CIFAR100KP
 from dataset.stl10_keeplabel import STL10
 from dataset.imagnette import *
 from dataset.svhn_keeplabel import *
+from dataset.imagenet10_keeplabel import *
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR TRADES Adversarial Training')
 parser.add_argument('--batch-size', type=int, default=128, metavar='N',
@@ -74,7 +75,8 @@ parser.add_argument('--droprate', type=float, default=0.0, metavar='N',
 parser.add_argument('--percent', default=0.1, type=float, help='Percentage of deleted data')
 
 # training on dataset
-parser.add_argument('--dataset', default='CIFAR10', choices=['CIFAR10', 'CIFAR100', 'STL10', 'Imagnette', 'SVHN'],
+parser.add_argument('--dataset', default='CIFAR10',
+                    choices=['CIFAR10', 'CIFAR100', 'STL10', 'Imagnette', 'SVHN', 'ImageNet10'],
                     help='train model on dataset')
 
 args = parser.parse_args()
@@ -111,6 +113,12 @@ transform_train_STL10 = transforms.Compose([
 ])
 transform_train_Imagnette = transforms.Compose([
     transforms.RandomCrop(160, padding=4),
+    transforms.RandomHorizontalFlip(),
+    transforms.ToTensor(),
+])
+transform_train_Imagenet10 = transforms.Compose([
+    # transforms.RandomResizedCrop(224),
+    transforms.Resize([96, 96]),
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
 ])
@@ -151,6 +159,14 @@ elif args.dataset == 'SVHN':
     # extra_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
     testset = torchvision.datasets.SVHN(root='../data', split="test", download=True, transform=transform_test)
     test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
+elif args.dataset == 'ImageNet10':
+    traindir = '../data/ilsvrc2012/train'
+    valdir = '../data/ilsvrc2012/val'
+    # train = torchvision.datasets.ImageFolder(traindir, transform_train_Imagenet10)
+    train = ImageFolder(traindir, transform_train_Imagenet10, percent=args.percent)
+    train_loader = torch.utils.data.DataLoader(train, batch_size=args.batch_size, shuffle=True, num_workers=4)
+    val = torchvision.datasets.ImageFolder(valdir, transform_train_Imagenet10)
+    test_loader = torch.utils.data.DataLoader(val, batch_size=args.test_batch_size, shuffle=False, num_workers=4)
 
 
 def train(args, model, device, train_loader, optimizer, epoch, logger):
@@ -262,13 +278,7 @@ def main():
     elif args.model == 'preactresnet':  # model 小，需要降 lr
         if args.dataset == 'CIFAR100':
             model = nn.DataParallel(create_network(num_classes=100).cuda())
-        elif args.dataset == 'CIFAR10':
-            model = nn.DataParallel(create_network(num_classes=10).cuda())
-        elif args.dataset == 'STL10':
-            model = nn.DataParallel(create_network(num_classes=10).cuda())
-        elif args.dataset == 'Imagnette':
-            model = nn.DataParallel(create_network(num_classes=10).cuda())
-        elif args.dataset == 'SVHN':
+        elif args.dataset == 'CIFAR10' or 'STL10' or 'Imagnette' or 'SVHN' or 'ImageNet10':
             model = nn.DataParallel(create_network(num_classes=10).cuda())
         args.lr = 0.01
         args.weight_decay = 5e-4
