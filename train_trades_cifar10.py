@@ -381,7 +381,7 @@ def main():
             model = nn.DataParallel(create_network(num_classes=100).cuda())
         elif args.dataset == 'CIFAR10' or 'STL10' or 'Imagnette' or 'SVHN' or 'ImageNet10':
             model = nn.DataParallel(create_network(num_classes=10).cuda())
-        if args.dataset =='Imagnette':  # 图片大，原有 lr 导致 loss比较大
+        if args.dataset =='Imagnette' or 'ImageNet10':  # 图片大，原有 lr 导致 loss比较大
             args.lr = 0.005
             args.weight_decay = 5e-4
         else:

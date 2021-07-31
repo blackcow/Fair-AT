@@ -280,8 +280,12 @@ def main():
             model = nn.DataParallel(create_network(num_classes=100).cuda())
         elif args.dataset == 'CIFAR10' or 'STL10' or 'Imagnette' or 'SVHN' or 'ImageNet10':
             model = nn.DataParallel(create_network(num_classes=10).cuda())
-        args.lr = 0.01
-        args.weight_decay = 5e-4
+        if args.dataset == 'ImageNet10':
+            args.lr = 0.005
+            args.weight_decay = 5e-4
+        else:
+            args.lr = 0.01
+            args.weight_decay = 5e-4
 
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
     logger = get_logger(model_dir + '/train.log')
