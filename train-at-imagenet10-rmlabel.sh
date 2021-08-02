@@ -1,172 +1,172 @@
 #!/usr/bin/env zsh
 
-# TRADES (ImageNet10), rmlabel
+# TRADES (ImageNet10), rmlabel 
 echo "开始训练 1......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 1 --rmlabel0
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 1 --rmlabel 0
 wait
 echo "开始训练 2......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 2 --rmlabel0
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 2 --rmlabel 0
 wait
 echo "开始训练 3......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 3 --rmlabel0
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 3 --rmlabel 0
 wait
 echo "开始训练 4......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 4 --rmlabel0
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 4 --rmlabel 0
 wait
 echo "开始训练 5......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 5 --rmlabel0
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 5 --rmlabel 0
 wait
 echo "结束训练......"
 
 echo "开始训练 1......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 1 --rmlabel1
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 1 --rmlabel 1
 wait
 echo "开始训练 2......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 2 --rmlabel1
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 2 --rmlabel 1
 wait
 echo "开始训练 3......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 3 --rmlabel1
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 3 --rmlabel 1
 wait
 echo "开始训练 4......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 4 --rmlabel1
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 4 --rmlabel 1
 wait
 echo "开始训练 5......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 5 --rmlabel1
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 5 --rmlabel 1
 wait
 echo "结束训练......"
 
 echo "开始训练 1......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 1 --rmlabel2
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 1 --rmlabel 2
 wait
 echo "开始训练 2......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 2 --rmlabel2
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 2 --rmlabel 2
 wait
 echo "开始训练 3......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 3 --rmlabel2
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 3 --rmlabel 2
 wait
 echo "开始训练 4......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 4 --rmlabel2
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 4 --rmlabel 2
 wait
 echo "开始训练 5......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 5 --rmlabel2
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 5 --rmlabel 2
 wait
 echo "结束训练......"
 
 echo "开始训练 1......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 1 --rmlabel3
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 1 --rmlabel 3
 wait
 echo "开始训练 2......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 2 --rmlabel3
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 2 --rmlabel 3
 wait
 echo "开始训练 3......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 3 --rmlabel3
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 3 --rmlabel 3
 wait
 echo "开始训练 4......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 4 --rmlabel3
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 4 --rmlabel 3
 wait
 echo "开始训练 5......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 5 --rmlabel3
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 5 --rmlabel 3
 wait
 echo "结束训练......"
 
 echo "开始训练 1......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 1 --rmlabel4
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 1 --rmlabel 4
 wait
 echo "开始训练 2......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 2 --rmlabel4
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 2 --rmlabel 4
 wait
 echo "开始训练 3......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 3 --rmlabel4
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 3 --rmlabel 4
 wait
 echo "开始训练 4......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 4 --rmlabel4
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 4 --rmlabel 4
 wait
 echo "开始训练 5......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 5 --rmlabel4
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 5 --rmlabel 4
 wait
 echo "结束训练......"
 
 echo "开始训练 1......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 1 --rmlabel5
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 1 --rmlabel 5
 wait
 echo "开始训练 2......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 2 --rmlabel5
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 2 --rmlabel 5
 wait
 echo "开始训练 3......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 3 --rmlabel5
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 3 --rmlabel 5
 wait
 echo "开始训练 4......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 4 --rmlabel5
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 4 --rmlabel 5
 wait
 echo "开始训练 5......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 5 --rmlabel5
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 5 --rmlabel 5
 wait
 echo "结束训练......"
 
 echo "开始训练 1......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 1 --rmlabel6
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 1 --rmlabel 6
 wait
 echo "开始训练 2......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 2 --rmlabel6
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 2 --rmlabel 6
 wait
 echo "开始训练 3......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 3 --rmlabel6
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 3 --rmlabel 6
 wait
 echo "开始训练 4......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 4 --rmlabel6
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 4 --rmlabel 6
 wait
 echo "开始训练 5......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 5 --rmlabel6
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 5 --rmlabel 6
 wait
 echo "结束训练......"
 
 echo "开始训练 1......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 1 --rmlabel7
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 1 --rmlabel 7
 wait
 echo "开始训练 2......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 2 --rmlabel7
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 2 --rmlabel 7
 wait
 echo "开始训练 3......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 3 --rmlabel7
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 3 --rmlabel 7
 wait
 echo "开始训练 4......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 4 --rmlabel7
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 4 --rmlabel 7
 wait
 echo "开始训练 5......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 5 --rmlabel7
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 5 --rmlabel 7
 wait
 echo "结束训练......"
 
 echo "开始训练 1......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 1 --rmlabel8
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 1 --rmlabel 8
 wait
 echo "开始训练 2......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 2 --rmlabel8
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 2 --rmlabel 8
 wait
 echo "开始训练 3......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 3 --rmlabel8
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 3 --rmlabel 8
 wait
 echo "开始训练 4......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 4 --rmlabel8
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 4 --rmlabel 8
 wait
 echo "开始训练 5......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 5 --rmlabel8
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 5 --rmlabel 8
 wait
 echo "结束训练......"
 
 echo "开始训练 1......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 1 --rmlabel9
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 1 --rmlabel 9
 wait
 echo "开始训练 2......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 2 --rmlabel9
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 2 --rmlabel 9
 wait
 echo "开始训练 3......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 3 --rmlabel9
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 3 --rmlabel 9
 wait
 echo "开始训练 4......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 4 --rmlabel9
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 4 --rmlabel 9
 wait
 echo "开始训练 5......"
-CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 5 --rmlabel9
+CUDA_VISIBLE_DEVICES=1,2,3 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset ImageNet10 --gpu-id 1,2,3 --seed 5 --rmlabel 9
 wait
 echo "结束训练......"
