@@ -33,6 +33,7 @@ from time import time
 from torch.utils.tensorboard import SummaryWriter
 from torchsummaryX import summary
 from dataset.imagnette import *
+from trades import trades_loss_test
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
 parser.add_argument('--test-batch-size', type=int, default=64, metavar='N',
@@ -133,7 +134,7 @@ def loadmodel_preactresnte(i, factor):
     # ckpt = '../Fair-AT/model-cifar-wideResNet/preactresnet/TRADES_ImageNet10/seed1/'
     # ckpt = '../Fair-AT/model-cifar-wideResNet/preactresnet/ST_ImageNet10/kplabel_seed1/percent_0.1/'
     # ckpt_list = ['model-wideres-epoch76.pt', 'model-wideres-epoch100.pt']
-    ckpt_list = ['model-wideres-epoch100.pt', 'model-wideres-epoch100.pt']
+    ckpt_list = ['model-wideres-epoch76.pt']
 
     if args.dataset == 'CIFAR10' or 'STL10' or 'Imagnette' or 'SVHN' or 'ImageNet10':
         num_classes = 10
@@ -143,10 +144,6 @@ def loadmodel_preactresnte(i, factor):
     ckpt += ckpt_list[i]
     # print(net)
     net.load_state_dict(torch.load(ckpt))
-
-    # for AT-opt & Fine-tune model
-    # checkpoint = torch.load(ckpt)
-    # net.load_state_dict(checkpoint['net'])
     net.eval()
     print(ckpt)
     return net
@@ -203,6 +200,10 @@ def test(writer, net, model_name, epsilon, AT_method):
             output.append(out)
             output_robust.append(out_pgd)
             target.append(y)
+
+            robust_loss = trades_loss_test(model=net, x_natural=inputs, y=targets,
+                               optimizer=None, step_size=args.step_size, epsilon=args.epsilon,
+                               perturb_steps=args.num_steps, beta=args.beta)
 
         # 计算每个类别下的 err
         output_tmp = torch.stack(output[:-1])
@@ -261,11 +262,6 @@ def main():
             test(writer, net, 'model_name', factor[0], args.AT_method)
     else:
         raise Exception('this should never happen')
-    # sum of the dis of the center rep
-    # for m in range(model_num):
-    #     print('%.2f' % logits[m])
-    # for m in range(model_num):
-    #     print('%.2f' % logits_robust[m])
 
     writer.close()
     end = time()

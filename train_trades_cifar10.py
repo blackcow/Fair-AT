@@ -14,7 +14,7 @@ from models.wideresnet import *
 from models.densenet import *
 from models.preactresnet import create_network
 from models.resnet import *
-from trades import trades_loss
+from trades import trades_loss, trades_loss_aug
 from tradesfair import trades_fair_loss
 from pgd import pgd_loss
 from torch.utils.tensorboard import SummaryWriter
@@ -36,7 +36,7 @@ parser.add_argument('--droprate', type=float, default=0.0, metavar='N',
                     help='model droprate (default: 0.0)')
 
 parser.add_argument('--AT-method', type=str, default='TRADES',
-                    help='AT method', choices=['TRADES', 'PGD', 'ST'])
+                    help='AT method', choices=['TRADES', 'TRADES_aug', 'PGD', 'ST'])
 # parser.add_argument('--epochs', type=int, default=76, metavar='N',
 parser.add_argument('--epochs', type=int, default=100, metavar='N',
                     help='number of epochs to train')
@@ -290,6 +290,10 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
             loss = trades_loss(model=model, x_natural=data, y=target,
                            optimizer=optimizer, step_size=args.step_size, epsilon=args.epsilon,
                            perturb_steps=args.num_steps, beta=args.beta)
+        elif args.AT_method == 'TRADES_aug':
+            loss = trades_loss_aug(model=model, x_natural=data, y=target,
+                           optimizer=optimizer, step_size=args.step_size, epsilon=args.epsilon,
+                           perturb_steps=args.num_steps, beta=args.beta)
         elif args.AT_method == 'PGD':
             loss = pgd_loss(model=model, X=data, y=target, optimizer=optimizer,
                             step_size=args.step_size, epsilon=args.epsilon,
@@ -379,9 +383,9 @@ def main():
     elif args.model == 'preactresnet':  # model 小，需要降 lr
         if args.dataset == 'CIFAR100':
             model = nn.DataParallel(create_network(num_classes=100).cuda())
-        elif args.dataset == 'CIFAR10' or 'STL10' or 'Imagnette' or 'SVHN' or 'ImageNet10':
+        elif args.dataset == 'CIFAR10' or args.dataset == 'STL10' or args.dataset == 'Imagnette' or args.dataset == 'SVHN' or args.dataset == 'ImageNet10':
             model = nn.DataParallel(create_network(num_classes=10).cuda())
-        if args.dataset =='Imagnette' or 'ImageNet10':  # 图片大，原有 lr 导致 loss比较大
+        if args.dataset =='Imagnette' or args.dataset == 'ImageNet10':  # 图片大，原有 lr 导致 loss比较大
             args.lr = 0.005
             args.weight_decay = 5e-4
         else:
