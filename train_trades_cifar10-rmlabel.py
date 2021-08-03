@@ -89,7 +89,7 @@ if args.fair is not None:
     model_dir = args.model_dir + args.model + '/' + args.AT_method +\
                 '_fair_' + args.fair + '_fl_' + args.fairloss + '_T' + str(args.T)+'_L' + str(args.lamda) + '/' + factors
 else:
-    model_dir = args.model_dir + args.model + '/' + args.AT_method + '_' + args.dataset + '/rmlabel_seed' + str(args.seed) + '/' + 'rmlabel' + str(args.rmlabel)
+    model_dir = args.model_dir + args.model + '/' + args.AT_method + '_' + args.dataset + '/rmlabel_' + str(args.rmlabel) +'/seed' + str(args.seed) + '/'
     # model_dir = args.model_dir + args.model + '/' + args.AT_method + '_' + args.dataset + '/seed' + str(args.seed)
 print(model_dir)
 if not os.path.exists(model_dir):
