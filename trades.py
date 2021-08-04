@@ -120,7 +120,9 @@ def boundary_loss_test(model, x_natural, y, optimizer=None, step_size=0.003, eps
     return loss_natural, loss_robust
 
 # 针对特定 label 的 adv 做 augment（或者 perturb_steps，step_size 等超参数变化做 aug）
-def trades_loss_aug(model, x_natural, y, optimizer, step_size=0.003, epsilon=0.031, perturb_steps=10, beta=1.0, distance='l_inf'):
+# [2,3,4,5] 额外生成新的 adv data
+def trades_loss_aug(model, x_natural, y, optimizer, step_size=0.003, epsilon=0.031, perturb_steps=10, beta=1.0, distance='l_inf',
+                    beta_aug=6.0):  # 后续考虑 (20，0.003)
     # train (perturb_steps=10，step_size=0.007)，test (20，0.003)
     # define KL-loss
     criterion_kl = nn.KLDivLoss(size_average=False)
@@ -185,5 +187,5 @@ def trades_loss_aug(model, x_natural, y, optimizer, step_size=0.003, epsilon=0.0
     loss_natural = F.cross_entropy(logits_x, y)
     loss_robust = (1.0 / batch_size) * criterion_kl(F.log_softmax(logits_adv, dim=1), F.softmax(logits_x, dim=1))
     loss_robust_aug = (1.0 / len(idx)) * criterion_kl(F.log_softmax(logits_adv_aug, dim=1), F.softmax(logits_x_aug, dim=1))
-    loss = loss_natural + beta * loss_robust + beta * loss_robust_aug
+    loss = loss_natural + beta * loss_robust + beta_aug * loss_robust_aug
     return loss

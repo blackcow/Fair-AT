@@ -78,6 +78,8 @@ parser.add_argument('--fl_lamda', default=0.1, type=float, help='lamda of fairlo
 # training on dataset
 parser.add_argument('--dataset', default='CIFAR10', choices=['CIFAR10', 'CIFAR100', 'STL10', 'Imagnette', 'SVHN', 'ImageNet10'], help='train model on dataset')
 
+# aug
+parser.add_argument('--beta_aug', default=6.0, type=float, help='regularization, i.e., 1/lambda in TRADES')
 args = parser.parse_args()
 
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
@@ -293,7 +295,7 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
         elif args.AT_method == 'TRADES_aug':
             loss = trades_loss_aug(model=model, x_natural=data, y=target,
                            optimizer=optimizer, step_size=args.step_size, epsilon=args.epsilon,
-                           perturb_steps=args.num_steps, beta=args.beta)
+                           perturb_steps=args.num_steps, beta=args.beta, beta_aug=args.beta_aug)
         elif args.AT_method == 'PGD':
             loss = pgd_loss(model=model, X=data, y=target, optimizer=optimizer,
                             step_size=args.step_size, epsilon=args.epsilon,
