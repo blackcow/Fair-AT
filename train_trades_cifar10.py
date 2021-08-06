@@ -62,7 +62,7 @@ parser.add_argument('--log-interval', type=int, default=100, metavar='N',
                     help='how many batches to wait before logging training status')
 parser.add_argument('--model-dir', default='./model-cifar-wideResNet/',
                     help='directory of model for saving checkpoint')
-parser.add_argument('--save-freq', '-s', default=10, type=int, metavar='N',
+parser.add_argument('--save-freq', '-s', default=20, type=int, metavar='N',
                     help='save frequency')
 parser.add_argument('--model', default='wideresnet', choices=['wideresnet', 'densenet', 'preactresnet'],
                     help='AT model name')
@@ -425,7 +425,8 @@ def main():
         writer.add_scalars(graph_name, {'training_acc': training_accuracy, 'test_accuracy': test_accuracy}, epoch)
 
         # save checkpoint
-        if epoch % args.save_freq == 50 or epoch == 76:
+        # if epoch % args.save_freq == 0 or epoch == 76 or epoch == 100:
+        if epoch == 76 or epoch == 100:
             # torch.save(model.state_dict(),
             #            os.path.join(model_dir, 'model-wideres-epoch{}.pt'.format(epoch)))
             # torch.save(optimizer.state_dict(),
@@ -443,3 +444,5 @@ def main():
     writer.close()
 if __name__ == '__main__':
     main()
+--root_dir="logs/train/shapes"  --seed="0" --gpu  --latent_dim=2  --dataset_path=data/shapes/squares_G64_S1-20_seed0_R10_mnc32_mxc33.npz
+--property_key=areas  --max_epochs=20  --beta_final=10.0 --beta_start=1e-6  --beta_warmup=1000 --beta_step=1.1 --beta_step_freq=10  --batch_size=16
