@@ -444,5 +444,3 @@ def main():
     writer.close()
 if __name__ == '__main__':
     main()
---root_dir="logs/train/shapes"  --seed="0" --gpu  --latent_dim=2  --dataset_path=data/shapes/squares_G64_S1-20_seed0_R10_mnc32_mxc33.npz
---property_key=areas  --max_epochs=20  --beta_final=10.0 --beta_start=1e-6  --beta_warmup=1000 --beta_step=1.1 --beta_step_freq=10  --batch_size=16
