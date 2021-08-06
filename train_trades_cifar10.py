@@ -14,7 +14,7 @@ from models.wideresnet import *
 from models.densenet import *
 from models.preactresnet import create_network
 from models.resnet import *
-from trades import trades_loss, trades_loss_aug
+from trades import *
 from tradesfair import trades_fair_loss
 from pgd import pgd_loss
 from torch.utils.tensorboard import SummaryWriter
@@ -36,7 +36,7 @@ parser.add_argument('--droprate', type=float, default=0.0, metavar='N',
                     help='model droprate (default: 0.0)')
 
 parser.add_argument('--AT-method', type=str, default='TRADES',
-                    help='AT method', choices=['TRADES', 'TRADES_aug', 'PGD', 'ST'])
+                    help='AT method', choices=['TRADES', 'TRADES_aug','TRADES_aug', 'PGD', 'ST'])
 # parser.add_argument('--epochs', type=int, default=76, metavar='N',
 parser.add_argument('--epochs', type=int, default=100, metavar='N',
                     help='number of epochs to train')
@@ -296,6 +296,10 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
             loss = trades_loss_aug(model=model, x_natural=data, y=target,
                            optimizer=optimizer, step_size=args.step_size, epsilon=args.epsilon,
                            perturb_steps=args.num_steps, beta=args.beta, beta_aug=args.beta_aug)
+        elif args.AT_method == 'TRADES_augSA':
+            loss = trades_loss_augSA(model=model, x_natural=data, y=target,
+                           optimizer=optimizer, step_size=args.step_size, epsilon=args.epsilon,
+                           perturb_steps=args.num_steps, beta=args.beta, beta_aug=args.beta_aug)
         elif args.AT_method == 'PGD':
             loss = pgd_loss(model=model, X=data, y=target, optimizer=optimizer,
                             step_size=args.step_size, epsilon=args.epsilon,
@@ -417,7 +421,7 @@ def main():
         writer.add_scalars(graph_name, {'training_acc': training_accuracy, 'test_accuracy': test_accuracy}, epoch)
 
         # save checkpoint
-        if epoch % args.save_freq == 0 or epoch == 74 or epoch == 75 or epoch == 76:
+        if epoch % args.save_freq == 50 or epoch == 76:
             # torch.save(model.state_dict(),
             #            os.path.join(model_dir, 'model-wideres-epoch{}.pt'.format(epoch)))
             # torch.save(optimizer.state_dict(),
