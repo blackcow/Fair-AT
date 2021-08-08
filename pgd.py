@@ -29,6 +29,7 @@ def l2_norm(x):
 def clamp(X, lower_limit, upper_limit):
     return torch.max(torch.min(X, upper_limit), lower_limit)
 
+# 报错
 def attack_pgd(model, X, y, epsilon, step_size, perturb_steps, distance, early_stop=False,
                mixup=False, y_a=None, y_b=None, lam=None):
     # max_loss = torch.zeros(y.shape[0]).cuda()
@@ -39,7 +40,7 @@ def attack_pgd(model, X, y, epsilon, step_size, perturb_steps, distance, early_s
     delta.requires_grad = True
     for _ in range(perturb_steps):
         # output = model(normalize(X + delta))
-        output = model(X + delta)
+        _, output = model(X + delta)
         if early_stop: # 这是啥？
             index = torch.where(output.max(1)[1] == y)[0]
         else:
@@ -64,10 +65,45 @@ def attack_pgd(model, X, y, epsilon, step_size, perturb_steps, distance, early_s
     max_delta = delta.detach()
     return max_delta
 
+# 可用
+def pgd_linf_rand(model, x, y, epsilon, step_size, perturb_steps, distance):
+    """"construct PGD_linf adversarial examples with random restarts"""
+    max_loss = torch.zeros(y.shape[0]).cuda()
+    max_delta = torch.zeros_like(x)
+    delta_ini = torch.rand_like(x, requires_grad=True)
+    delta = delta_ini * epsilon
+    delta.retain_grad()
+
+    for t in range(perturb_steps):
+        _, out = model(x + delta)
+        loss = nn.CrossEntropyLoss()(out, y)
+        loss.backward(retain_graph=True)
+        delta.data = (delta + step_size * delta.grad.data.sign()).clamp(-epsilon, epsilon)
+        delta.grad.zero_()
+
+    _, out = model(x + delta)
+    all_loss = nn.CrossEntropyLoss()(out, y)
+    max_delta[all_loss > max_loss] = delta[all_loss > max_loss]
+    # max_loss = torch.max(all_loss, max_loss)
+    return max_delta.detach()
+
+
+def pgd_linf_targ(model, x, y, epsilon, alpha, num_iter, y_targ):
+    """construct targeted ad examples on example x """
+    delta = torch.zeros_like(x, requires_grad=True)
+    for t in range(num_iter):
+        yp = model(x+delta)
+        loss = (yp[:, y_targ] - yp.gather(1, y[:, None])[:, 0]).sum()
+        loss.backward()
+        delta.data = (delta + alpha * delta.grad.detach().sign()).clamp(-epsilon, epsilon)
+        delta.grad.zero_()
+    return delta.detach()
+
 # model, X, y, epsilon, step_size, perturb_steps, restarts, norm,
 def pgd_loss(model, X, y, optimizer, epsilon=0.031, step_size=0.003, perturb_steps=10, beta=1.0, distance='l_inf'):
     model.eval()
-    delta = attack_pgd(model, X, y, epsilon, step_size, perturb_steps, distance)
+    # delta = attack_pgd(model, X, y, epsilon, step_size, perturb_steps, distance)
+    delta = pgd_linf_rand(model, X, y, epsilon, step_size, perturb_steps, distance)
     delta = delta.detach()
     # robust_output = model(normalize(torch.clamp(X + delta[:X.size(0)], min=lower_limit, max=upper_limit)))
     # x_adv = Variable(torch.clamp(X + delta[:X.size(0)], min=lower_limit, max=upper_limit), requires_grad=False)
@@ -78,6 +114,6 @@ def pgd_loss(model, X, y, optimizer, epsilon=0.031, step_size=0.003, perturb_ste
     #         if 'bn' not in name and 'bias' not in name:
     #             robust_loss += args.l1 * param.abs().sum()
     optimizer.zero_grad()
-    robust_output = model(x_adv)
+    _, robust_output = model(x_adv)
     robust_loss = F.cross_entropy(robust_output, y)
     return robust_loss
