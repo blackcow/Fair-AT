@@ -58,7 +58,7 @@
 #echo "结束训练......"
 
 
-# TRADES_aug_pgdattk (CIFAR10)
+# TRADES_loss_adp (CIFAR10)
 # 在每个 seed 下使用不同的超参数
 echo "开始训练 1......"
 CUDA_VISIBLE_DEVICES=0 python train_trades_cifar10.py --model preactresnet --AT-method TRADES_loss_adp  --dataset CIFAR10 --gpu-id 0 --seed 1 --beta 0.1 --beta_aug 6
