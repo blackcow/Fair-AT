@@ -218,7 +218,7 @@ def trades_loss_aug(model, x_natural, y, optimizer, step_size=0.003, epsilon=0.0
 
 
 # 针对特定 label 的 adv 做 augment  +  AT loss(PGD)
-# [2,3,4,5] 额外生成新的 adv data
+# [2,3,4,5] 额外生成新的 adv data（*使用 trades 生成的 attack*）
 # 目前看来不 work
 def trades_loss_aug_pgd(model, x_natural, y, optimizer, step_size=0.003, epsilon=0.031, perturb_steps=10, beta=1.0,
                         distance='l_inf',

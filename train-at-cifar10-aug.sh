@@ -44,7 +44,7 @@ echo "开始训练 1......"
 CUDA_VISIBLE_DEVICES=3 python train_trades_cifar10.py --model preactresnet --AT-method TRADES_aug_pgdattk --dataset CIFAR10 --gpu-id 3 --seed 1 --beta_aug 0.5
 wait
 echo "开始训练 2......"
-CUDA_VISIBLE_DEVICES=2 python train_trades_cifar10.py --model preactresnet --AT-method TRADES_aug_pgdattk  --dataset CIFAR10 --gpu-id 2 --seed 2 --beta 1 --beta_aug 1
+CUDA_VISIBLE_DEVICES=2 python train_trades_cifar10.py --model preactresnet --AT-method TRADES_aug_pgdattk  --dataset CIFAR10 --gpu-id 2 --seed 2 --beta_aug 1
 wait
 echo "开始训练 3......"
 CUDA_VISIBLE_DEVICES=1 python train_trades_cifar10.py --model preactresnet --AT-method TRADES_aug_pgdattk  --dataset CIFAR10 --gpu-id 1 --seed 3 --beta_aug 2
