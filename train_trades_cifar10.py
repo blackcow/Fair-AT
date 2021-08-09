@@ -37,8 +37,8 @@ parser.add_argument('--droprate', type=float, default=0.0, metavar='N',
 
 parser.add_argument('--AT-method', type=str, default='TRADES',
                     help='AT method', choices=['TRADES', 'TRADES_loss_adp',
-                                               'TRADES_aug','TRADES_aug','TRADES_aug_pgd', 'TRADES_aug_pgdattk',
-                                               'PGD', 'ST'])
+                                               'TRADES_aug', 'TRADES_aug', 'TRADES_aug_pgd', 'TRADES_aug_pgdattk',
+                                               'PGD', 'ST', 'ST_adp'])
 # parser.add_argument('--epochs', type=int, default=76, metavar='N',
 parser.add_argument('--epochs', type=int, default=100, metavar='N',
                     help='number of epochs to train')
@@ -321,6 +321,8 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
         elif args.AT_method == 'ST' and args.fair is None:
             _, out = model(data)
             loss = F.cross_entropy(out, target)
+        elif args.AT_method == 'ST_adp':
+            loss = st_adp(model=model, x_natural=data, y=target, beta=args.beta, beta_aug=args.beta_aug)
 
         # 不调整顺序 这里只计算了 benign 的 rep
         elif args.AT_method == 'ST' and args.fair is not None:

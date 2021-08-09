@@ -430,3 +430,32 @@ def trades_loss_augSA(model, x_natural, y, optimizer, step_size=0.003, epsilon=0
                                                       F.softmax(logits_x_aug, dim=1))
     loss = loss_natural + loss_natural_aug + beta * loss_robust + beta_aug * loss_robust_aug
     return loss
+
+
+
+# 针对特定 label ST
+# [2,3,4,5] ST loss 调整权重
+def st_adp(model, x_natural, y, beta=1.0, beta_aug=6.0):
+    # 找特定 label 的 idx
+    idx1 = []
+    idx2 = []
+    for i in [0, 1, 6, 7, 8, 9]:
+        idx1.append((y == i).nonzero().flatten())
+    idx1 = torch.cat(idx1)
+    for i in [2, 3, 4, 5]:
+        idx2.append((y == i).nonzero().flatten())
+    idx2 = torch.cat(idx2)
+
+    # calculate natural loss
+    _, logits_x = model(x_natural)
+    logits_x_p1 = torch.index_select(logits_x, 0, idx1)
+    logits_x_p2 = torch.index_select(logits_x, 0, idx2)
+    y1 = torch.index_select(y, 0, idx1)
+    y2 = torch.index_select(y, 0, idx2)
+    # [0, 1, 6, 7, 8, 9] loss
+    # 得到的是均值
+    loss_natural_p1 = F.cross_entropy(logits_x_p1, y1)
+    # [2,3,4,5] loss
+    loss_natural_p2 = F.cross_entropy(logits_x_p2, y2)
+    loss = beta * loss_natural_p1 * len(y1)/len(y) + (1-beta) * loss_natural_p2 * len(y2)/len(y)
+    return loss
