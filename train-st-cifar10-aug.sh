@@ -12,10 +12,10 @@ echo "开始训练 3......"
 CUDA_VISIBLE_DEVICES=1 python train_trades_cifar10.py --model preactresnet --AT-method ST_adp  --dataset CIFAR10 --gpu-id 1 --seed 3 --beta 0.2
 wait
 echo "开始训练 4......"
-CUDA_VISIBLE_DEVICES=1 python train_trades_cifar10.py --model preactresnet --AT-method ST_adp  --dataset CIFAR10 --gpu-id 1 --seed 4 --beta 0.3
+CUDA_VISIBLE_DEVICES=1 python train_trades_cifar10.py --model preactresnet --AT-method ST_adp  --dataset CIFAR10 --gpu-id 1 --seed 4 --beta 0.4
 wait
 echo "开始训练 5......"
-CUDA_VISIBLE_DEVICES=1 python train_trades_cifar10.py --model preactresnet --AT-method ST_adp  --dataset CIFAR10 --gpu-id 1 --seed 4 --beta 0.4
+CUDA_VISIBLE_DEVICES=1 python train_trades_cifar10.py --model preactresnet --AT-method ST_adp  --dataset CIFAR10 --gpu-id 1 --seed 5 --beta 0.3
 wait
 echo "结束训练......"
 
