@@ -82,6 +82,8 @@ parser.add_argument('--dataset', default='CIFAR10', choices=['CIFAR10', 'CIFAR10
 
 # aug
 parser.add_argument('--beta_aug', default=6.0, type=float, help='regularization, i.e., 1/lambda in TRADES')
+# parser.add_argument('--list_aug', default=[2, 3, 4, 5], type=float, help='regularization, i.e., 1/lambda in TRADES')
+parser.add_argument('--list_aug', nargs='+', type=int)
 args = parser.parse_args()
 
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
@@ -322,7 +324,7 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
             _, out = model(data)
             loss = F.cross_entropy(out, target)
         elif args.AT_method == 'ST_adp':
-            loss = st_adp(model=model, x_natural=data, y=target, beta=args.beta, beta_aug=args.beta_aug)
+            loss = st_adp(model=model, x_natural=data, y=target, beta=args.beta, beta_aug=args.beta_aug, list_aug=args.list_aug)
 
         # 不调整顺序 这里只计算了 benign 的 rep
         elif args.AT_method == 'ST' and args.fair is not None:

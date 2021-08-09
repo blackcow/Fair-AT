@@ -435,14 +435,16 @@ def trades_loss_augSA(model, x_natural, y, optimizer, step_size=0.003, epsilon=0
 
 # 针对特定 label ST
 # [2,3,4,5] ST loss 调整权重
-def st_adp(model, x_natural, y, beta=1.0, beta_aug=6.0):
+def st_adp(model, x_natural, y, list_aug, beta=1.0, beta_aug=6.0):
     # 找特定 label 的 idx
+    list_all = [i for i in range(10)]
+    list_oth = list(set(list_all) - set(list_aug))
     idx1 = []
     idx2 = []
-    for i in [0, 1, 6, 7, 8, 9]:
+    for i in list_oth:
         idx1.append((y == i).nonzero().flatten())
     idx1 = torch.cat(idx1)
-    for i in [2, 3, 4, 5]:
+    for i in list_aug:
         idx2.append((y == i).nonzero().flatten())
     idx2 = torch.cat(idx2)
 
