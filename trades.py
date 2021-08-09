@@ -135,16 +135,17 @@ def trades_loss_adp(model, x_natural, y, optimizer, step_size=0.003, epsilon=0.0
     logits_adv_p2 = torch.index_select(logits_adv, 0, idx2)
     loss_natural = F.cross_entropy(logits_x, y)
     # [0, 1, 6, 7, 8, 9] loss
-    loss_robust_p1 = (1.0 / len(idx1)) * criterion_kl(F.log_softmax(logits_adv_p1, dim=1), F.softmax(logits_x_p1, dim=1))
+    loss_robust_p1 = (1.0 / len(idx1)) * criterion_kl(F.log_softmax(logits_adv_p1, dim=1),
+                                                      F.softmax(logits_x_p1, dim=1))
     # [2,3,4,5] loss
-    loss_robust_p2 = (1.0 / len(idx2)) * criterion_kl(F.log_softmax(logits_adv_p2, dim=1), F.softmax(logits_x_p2, dim=1))
+    loss_robust_p2 = (1.0 / len(idx2)) * criterion_kl(F.log_softmax(logits_adv_p2, dim=1),
+                                                      F.softmax(logits_x_p2, dim=1))
     loss = loss_natural + beta * loss_robust_p1 + beta_aug * loss_robust_p2
     return loss
 
 
 # 针对特定 label 的 adv 做 augment（或者 perturb_steps，step_size 等超参数变化做 aug）
 # [2,3,4,5] 额外生成新的 adv data
-# 目前看来不 work
 def trades_loss_aug(model, x_natural, y, optimizer, step_size=0.003, epsilon=0.031, perturb_steps=10, beta=1.0,
                     distance='l_inf',
                     beta_aug=6.0):  # 后续考虑 (20，0.003)
@@ -214,6 +215,74 @@ def trades_loss_aug(model, x_natural, y, optimizer, step_size=0.003, epsilon=0.0
     loss_robust_aug = (1.0 / len(idx)) * criterion_kl(F.log_softmax(logits_adv_aug, dim=1),
                                                       F.softmax(logits_x_aug, dim=1))
     loss = loss_natural + beta * loss_robust + beta_aug * loss_robust_aug
+    return loss
+
+
+# 生成 aug 的 adv data
+def adv_aug(model, x_natural, step_size=0.003, epsilon=0.031, perturb_steps=10):
+    criterion_kl = nn.KLDivLoss(size_average=False)
+
+    x_adv = x_natural.detach() + 0.001 * torch.randn(x_natural.shape).cuda().detach()
+    for _ in range(perturb_steps):
+        x_adv.requires_grad_()
+        with torch.enable_grad():
+            _, out_adv_aug = model(x_adv)
+            _, out_nat_aug = model(x_natural)
+            loss_kl = criterion_kl(F.log_softmax(out_adv_aug, dim=1), F.softmax(out_nat_aug, dim=1))
+        grad = torch.autograd.grad(loss_kl, [x_adv])[0]
+
+        x_adv = x_adv.detach() + step_size * torch.sign(grad.detach())
+        x_adv = torch.min(torch.max(x_adv, x_natural - epsilon), x_natural + epsilon)
+        x_adv = torch.clamp(x_adv, 0.0, 1.0)
+    return x_adv
+
+
+# 针对特定 label 的 adv 做 augment（或者 perturb_steps，step_size 等超参数变化做 aug），相比trades_loss_aug，在特定 label 上生成更多样本
+# [2,3,4,5] 额外生成新的 adv data
+def trades_loss_augmulti(model, x_natural, y, optimizer, step_size=0.003, epsilon=0.031, perturb_steps=10, beta=1.0,
+                     distance='l_inf',
+                     beta_aug=6.0):  # 后续考虑 (20，0.003)
+    # define KL-loss
+    criterion_kl = nn.KLDivLoss(size_average=False)
+    model.eval()
+    batch_size = len(x_natural)
+    # 找特定 label 的 idx
+    idx = []
+    for i in [2, 3, 4, 5]:
+        idx.append((y == i).nonzero().flatten())
+        # idx.cuda()
+    idx = torch.cat(idx)
+    x_natural_aug = torch.index_select(x_natural, 0, idx)
+    # generate adversarial example
+    # 选择特定 label 的 data ，生成多倍的 adv
+    x_adv = adv_aug(model, x_natural, step_size, epsilon, perturb_steps)
+    x_adv_aug = adv_aug(model, x_natural_aug, step_size, epsilon, perturb_steps)
+    x_adv_aug2 = adv_aug(model, x_natural_aug, step_size, epsilon, perturb_steps)
+    x_adv_aug3 = adv_aug(model, x_natural_aug, step_size, epsilon, perturb_steps)
+
+    model.train()
+
+    x_adv = Variable(torch.clamp(x_adv, 0.0, 1.0), requires_grad=False)
+    x_adv_aug = Variable(torch.clamp(x_adv_aug, 0.0, 1.0), requires_grad=False)
+    x_adv_aug2 = Variable(torch.clamp(x_adv_aug2, 0.0, 1.0), requires_grad=False)
+    x_adv_aug3 = Variable(torch.clamp(x_adv_aug3, 0.0, 1.0), requires_grad=False)
+
+    # zero gradient
+    optimizer.zero_grad()
+    # calculate robust loss
+    _, logits_x = model(x_natural)
+    logits_x_aug = torch.index_select(logits_x, 0, idx)
+    _, logits_adv = model(x_adv)
+    _, logits_adv_aug = model(x_adv_aug)
+    _, logits_adv_aug2 = model(x_adv_aug2)
+    _, logits_adv_aug3 = model(x_adv_aug3)
+
+    loss_natural = F.cross_entropy(logits_x, y)
+    loss_robust = (1.0 / batch_size) * criterion_kl(F.log_softmax(logits_adv, dim=1), F.softmax(logits_x, dim=1))
+    loss_robust_aug = (1.0 / len(idx)) * criterion_kl(F.log_softmax(logits_adv_aug, dim=1), F.softmax(logits_x_aug, dim=1))
+    loss_robust_aug2 = (1.0 / len(idx)) * criterion_kl(F.log_softmax(logits_adv_aug2, dim=1), F.softmax(logits_x_aug, dim=1))
+    loss_robust_aug3 = (1.0 / len(idx)) * criterion_kl(F.log_softmax(logits_adv_aug3, dim=1), F.softmax(logits_x_aug, dim=1))
+    loss = loss_natural + beta * loss_robust + beta_aug * (loss_robust_aug + loss_robust_aug2 + loss_robust_aug3)
     return loss
 
 
@@ -432,7 +501,6 @@ def trades_loss_augSA(model, x_natural, y, optimizer, step_size=0.003, epsilon=0
     return loss
 
 
-
 # 针对特定 label ST
 # [2,3,4,5] ST loss 调整权重
 def st_adp(model, x_natural, y, list_aug, beta=1.0, beta_aug=6.0):
@@ -459,5 +527,5 @@ def st_adp(model, x_natural, y, list_aug, beta=1.0, beta_aug=6.0):
     loss_natural_p1 = F.cross_entropy(logits_x_p1, y1)
     # [2,3,4,5] loss
     loss_natural_p2 = F.cross_entropy(logits_x_p2, y2)
-    loss = beta * loss_natural_p1 * len(y1)/len(y) + (1-beta) * loss_natural_p2 * len(y2)/len(y)
+    loss = beta * loss_natural_p1 * len(y1) / len(y) + (1 - beta) * loss_natural_p2 * len(y2) / len(y)
     return loss
