@@ -302,7 +302,7 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
             rep_center, loss = trades_fair_loss(args=args, model=model, x_natural=data, y=target,
                                optimizer=optimizer, rep_center=rep_center, step_size=args.step_size, epsilon=args.epsilon,
                                perturb_steps=args.num_steps, beta=args.beta)
-        elif args.AT_method == 'TRADES':
+        elif args.AT_method == 'TRADES' or args.AT_method == 'TRADES_rm':
             loss = trades_loss(model=model, x_natural=data, y=target,
                                    optimizer=optimizer, step_size=args.step_size, epsilon=args.epsilon,
                                    perturb_steps=args.num_steps, beta=args.beta)
