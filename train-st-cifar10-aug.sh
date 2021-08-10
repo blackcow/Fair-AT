@@ -1,7 +1,7 @@
 #!/usr/bin/env zsh
 
 # ST keep percent data(CIFAR-10)
-# 对 2-5 调整 ce loss 的权重 ： 1-alpha
+# 对 2-5 调整 ce loss 的权重
 echo "开始训练 1......"
 CUDA_VISIBLE_DEVICES=3 python train_trades_cifar10.py --model preactresnet --AT-method ST_adp  --dataset CIFAR10 --gpu-id 3 --seed 1 --alpha 1.1 --list_aug 2 3 4 5
 wait
