@@ -89,24 +89,24 @@ def trades_loss(model, x_natural, y, optimizer, step_size=0.003, epsilon=0.031, 
 
 # 针对特定 label 的 adv 做 augment（或者 beta 的调整）
 # [2,3,4,5] trade loss 调整权重
-def trades_loss_adp(model, x_natural, y, optimizer, step_size=0.003, epsilon=0.031, perturb_steps=10, beta=1.0,
+def trades_loss_adp(model, x_natural, y, optimizer, list_aug, step_size=0.003, epsilon=0.031, perturb_steps=10, beta=1.0,
                     distance='l_inf', beta_aug=6.0):
+    list_all = [i for i in range(10)]
+    list_oth = list(set(list_all) - set(list_aug))
+    idx1 = []
+    idx2 = []
+    for i in list_oth:
+        idx1.append((y == i).nonzero().flatten())
+    idx1 = torch.cat(idx1)
+    for i in list_aug:
+        idx2.append((y == i).nonzero().flatten())
+    idx2 = torch.cat(idx2)
     # define KL-loss
     criterion_kl = nn.KLDivLoss(size_average=False)
     model.eval()
     batch_size = len(x_natural)
     # generate adversarial example
     x_adv = x_natural.detach() + 0.001 * torch.randn(x_natural.shape).cuda().detach()
-
-    # 找特定 label 的 idx
-    idx1 = []
-    idx2 = []
-    for i in [0, 1, 6, 7, 8, 9]:
-        idx1.append((y == i).nonzero().flatten())
-    idx1 = torch.cat(idx1)
-    for i in [2, 3, 4, 5]:
-        idx2.append((y == i).nonzero().flatten())
-    idx2 = torch.cat(idx2)
 
     if distance == 'l_inf':
         for _ in range(perturb_steps):
@@ -504,7 +504,7 @@ def trades_loss_augSA(model, x_natural, y, optimizer, step_size=0.003, epsilon=0
 # 针对特定 label ST
 # [2,3,4,5] ST loss 调整权重
 def st_adp(model, x_natural, y, list_aug, beta=1.0, beta_aug=6.0):
-    # 找特定 label 的 idx
+    # 找特定 label 的 idx，对不同的 label 设置不同权重
     list_all = [i for i in range(10)]
     list_oth = list(set(list_all) - set(list_aug))
     idx1 = []

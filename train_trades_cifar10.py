@@ -299,7 +299,7 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
         elif args.AT_method == 'TRADES_loss_adp':
             loss = trades_loss_adp(model=model, x_natural=data, y=target,
                                    optimizer=optimizer, step_size=args.step_size, epsilon=args.epsilon,
-                                   perturb_steps=args.num_steps, beta=args.beta, beta_aug=args.beta_aug)
+                                   perturb_steps=args.num_steps, beta=args.beta, beta_aug=args.beta_aug, list_aug=args.list_aug)
         elif args.AT_method == 'TRADES_augmulti':
             loss = trades_loss_augmulti(model=model, x_natural=data, y=target,
                                    optimizer=optimizer, step_size=args.step_size, epsilon=args.epsilon,
