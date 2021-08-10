@@ -144,6 +144,74 @@ def trades_loss_adp(model, x_natural, y, optimizer, list_aug, step_size=0.003, e
     return loss
 
 
+# 针对特定 label 的 benign 和 adv 都做 reweight（ beta 的调整）
+# [2,3,4,5] trade loss 调整权重
+def trades_st_loss_adp(model, x_natural, y, optimizer, list_aug, alpha, step_size=0.003, epsilon=0.031, perturb_steps=10, beta=1.0,
+                    distance='l_inf', beta_aug=6.0):
+    list_all = [i for i in range(10)]
+    list_oth = list(set(list_all) - set(list_aug))
+    idx1 = []
+    idx2 = []
+    for i in list_oth:
+        idx1.append((y == i).nonzero().flatten())
+    idx1 = torch.cat(idx1)
+    for i in list_aug:
+        idx2.append((y == i).nonzero().flatten())
+    idx2 = torch.cat(idx2)
+    # define KL-loss
+    criterion_kl = nn.KLDivLoss(size_average=False)
+    model.eval()
+    batch_size = len(x_natural)
+    # generate adversarial example
+    x_adv = x_natural.detach() + 0.001 * torch.randn(x_natural.shape).cuda().detach()
+
+    if distance == 'l_inf':
+        for _ in range(perturb_steps):
+            x_adv.requires_grad_()
+            with torch.enable_grad():
+                _, out_adv = model(x_adv)
+                _, out_nat = model(x_natural)
+                loss_kl = criterion_kl(F.log_softmax(out_adv, dim=1),
+                                       F.softmax(out_nat, dim=1))
+            grad = torch.autograd.grad(loss_kl, [x_adv])[0]
+
+            x_adv = x_adv.detach() + step_size * torch.sign(grad.detach())
+            x_adv = torch.min(torch.max(x_adv, x_natural - epsilon), x_natural + epsilon)
+            x_adv = torch.clamp(x_adv, 0.0, 1.0)
+    model.train()
+
+    x_adv = Variable(torch.clamp(x_adv, 0.0, 1.0), requires_grad=False)
+    # zero gradient
+    optimizer.zero_grad()
+    # calculate robust loss
+    _, logits_x = model(x_natural)
+    _, logits_adv = model(x_adv)
+    logits_x_p1 = torch.index_select(logits_x, 0, idx1)
+    logits_x_p2 = torch.index_select(logits_x, 0, idx2)
+    y1 = torch.index_select(y, 0, idx1)
+    y2 = torch.index_select(y, 0, idx2)
+
+    logits_adv_p1 = torch.index_select(logits_adv, 0, idx1)
+    logits_adv_p2 = torch.index_select(logits_adv, 0, idx2)
+    # loss_natural = F.cross_entropy(logits_x, y)
+
+    # natural loss
+    loss_natural_p1 = F.cross_entropy(logits_x_p1, y1)
+    loss_natural_p2 = F.cross_entropy(logits_x_p2, y2)
+    loss_natural = (loss_natural_p1 * len(y1) + alpha * loss_natural_p2 * len(y2)) / len(y)
+    loss = F.cross_entropy(logits_x, y)
+
+    # [0, 1, 6, 7, 8, 9] loss
+    loss_robust_p1 = (1.0 / len(idx1)) * criterion_kl(F.log_softmax(logits_adv_p1, dim=1),
+                                                      F.softmax(logits_x_p1, dim=1))
+    # [2,3,4,5] loss
+    loss_robust_p2 = (1.0 / len(idx2)) * criterion_kl(F.log_softmax(logits_adv_p2, dim=1),
+                                                      F.softmax(logits_x_p2, dim=1))
+
+    loss = loss_natural + beta * loss_robust_p1 + beta_aug * loss_robust_p2
+    return loss
+
+
 # 针对特定 label 的 adv 做 augment（或者 perturb_steps，step_size 等超参数变化做 aug）
 # [2,3,4,5] 额外生成新的 adv data
 def trades_loss_aug(model, x_natural, y, optimizer, step_size=0.003, epsilon=0.031, perturb_steps=10, beta=1.0,
@@ -503,7 +571,7 @@ def trades_loss_augSA(model, x_natural, y, optimizer, step_size=0.003, epsilon=0
 
 # 针对特定 label ST
 # [2,3,4,5] ST loss 调整权重
-def st_adp(model, x_natural, y, list_aug, beta=1.0, beta_aug=6.0):
+def st_adp(model, x_natural, y, list_aug, alpha):
     # 找特定 label 的 idx，对不同的 label 设置不同权重
     list_all = [i for i in range(10)]
     list_oth = list(set(list_all) - set(list_aug))
@@ -527,5 +595,6 @@ def st_adp(model, x_natural, y, list_aug, beta=1.0, beta_aug=6.0):
     loss_natural_p1 = F.cross_entropy(logits_x_p1, y1)
     # [2,3,4,5] loss
     loss_natural_p2 = F.cross_entropy(logits_x_p2, y2)
-    loss = beta * loss_natural_p1 * len(y1) / len(y) + (1 - beta) * loss_natural_p2 * len(y2) / len(y)
+    # loss = beta * loss_natural_p1 * len(y1) / len(y) + (1 - beta) * loss_natural_p2 * len(y2) / len(y)  # 写错了
+    loss = (loss_natural_p1 * len(y1) + alpha * loss_natural_p2 * len(y2)) / len(y) # 修正后
     return loss

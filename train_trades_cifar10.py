@@ -37,7 +37,7 @@ parser.add_argument('--droprate', type=float, default=0.0, metavar='N',
                     help='model droprate (default: 0.0)')
 
 parser.add_argument('--AT-method', type=str, default='TRADES',
-                    help='AT method', choices=['TRADES', 'TRADES_rm', 'TRADES_loss_adp',
+                    help='AT method', choices=['TRADES', 'TRADES_rm', 'TRADES_loss_adp', 'TRADES_ST_adp',
                                                'TRADES_aug', 'TRADES_augmulti', 'TRADES_aug_pgd', 'TRADES_aug_pgdattk',
                                                'PGD', 'ST', 'ST_adp'])
 # parser.add_argument('--epochs', type=int, default=76, metavar='N',
@@ -81,6 +81,8 @@ parser.add_argument('--fl_lamda', default=0.1, type=float, help='lamda of fairlo
 # training on dataset
 parser.add_argument('--dataset', default='CIFAR10', choices=['CIFAR10', 'CIFAR100', 'STL10', 'Imagnette', 'SVHN', 'ImageNet10'], help='train model on dataset')
 
+# ST adp
+parser.add_argument('--alpha', default=0.1, type=float, help='adaptive weights of ST')
 # aug
 parser.add_argument('--beta_aug', default=6.0, type=float, help='regularization, i.e., 1/lambda in TRADES')
 # parser.add_argument('--list_aug', default=[2, 3, 4, 5], type=float, help='regularization, i.e., 1/lambda in TRADES')
@@ -306,10 +308,10 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
             loss = trades_loss(model=model, x_natural=data, y=target,
                                    optimizer=optimizer, step_size=args.step_size, epsilon=args.epsilon,
                                    perturb_steps=args.num_steps, beta=args.beta)
-        # elif args.AT_method == 'TRADES_rm':
-        #     loss = trades_loss_rm(model=model, x_natural=data, y=target,
-        #                            optimizer=optimizer, step_size=args.step_size, epsilon=args.epsilon,
-        #                            perturb_steps=args.num_steps, beta=args.beta, beta_aug=args.beta_aug, list_aug=args.list_aug)
+        elif args.AT_method == 'TRADES_ST_adp':
+            loss = trades_st_loss_adp(model=model, x_natural=data, y=target,
+                                   optimizer=optimizer, step_size=args.step_size, epsilon=args.epsilon,
+                                   perturb_steps=args.num_steps, beta=args.beta, beta_aug=args.beta_aug, list_aug=args.list_aug, alpha=args.alpha)
         elif args.AT_method == 'TRADES_loss_adp':
             loss = trades_loss_adp(model=model, x_natural=data, y=target,
                                    optimizer=optimizer, step_size=args.step_size, epsilon=args.epsilon,
@@ -342,7 +344,7 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
             _, out = model(data)
             loss = F.cross_entropy(out, target)
         elif args.AT_method == 'ST_adp':
-            loss = st_adp(model=model, x_natural=data, y=target, beta=args.beta, beta_aug=args.beta_aug, list_aug=args.list_aug)
+            loss = st_adp(model=model, x_natural=data, y=target, alpha=args.alpha, list_aug=args.list_aug)
 
         # 不调整顺序 这里只计算了 benign 的 rep
         elif args.AT_method == 'ST' and args.fair is not None:

@@ -53,19 +53,19 @@
 #echo "结束训练......"
 
 echo "开始训练 1......"
-CUDA_VISIBLE_DEVICES=0 python train_trades_cifar10.py --model preactresnet --AT-method TRADES_rm  --dataset CIFAR10 --gpu-id 0 --seed 1 --rmlabel 3 --percent 0.2
+CUDA_VISIBLE_DEVICES=1 python train_trades_cifar10.py --model preactresnet --AT-method TRADES_rm  --dataset CIFAR10 --gpu-id 1 --seed 1 --rmlabel 3 --percent 0.2
 wait
 echo "开始训练 2......"
-CUDA_VISIBLE_DEVICES=0 python train_trades_cifar10.py --model preactresnet --AT-method TRADES_rm  --dataset CIFAR10 --gpu-id 0 --seed 1 --rmlabel 3 --percent 0.4
+CUDA_VISIBLE_DEVICES=1 python train_trades_cifar10.py --model preactresnet --AT-method TRADES_rm  --dataset CIFAR10 --gpu-id 1 --seed 1 --rmlabel 3 --percent 0.4
 wait
 echo "开始训练 3......"
-CUDA_VISIBLE_DEVICES=0 python train_trades_cifar10.py --model preactresnet --AT-method TRADES_rm  --dataset CIFAR10 --gpu-id 0 --seed 1 --rmlabel 3 --percent 0.6
+CUDA_VISIBLE_DEVICES=1 python train_trades_cifar10.py --model preactresnet --AT-method TRADES_rm  --dataset CIFAR10 --gpu-id 1 --seed 1 --rmlabel 3 --percent 0.6
 wait
 echo "开始训练 4......"
-CUDA_VISIBLE_DEVICES=0 python train_trades_cifar10.py --model preactresnet --AT-method TRADES_rm  --dataset CIFAR10 --gpu-id 0 --seed 1 --rmlabel 3 --percent 0.8
+CUDA_VISIBLE_DEVICES=1 python train_trades_cifar10.py --model preactresnet --AT-method TRADES_rm  --dataset CIFAR10 --gpu-id 1 --seed 1 --rmlabel 3 --percent 0.8
 wait
 echo "开始训练 5......"
-CUDA_VISIBLE_DEVICES=0 python train_trades_cifar10.py --model preactresnet --AT-method TRADES_rm  --dataset CIFAR10 --gpu-id 0 --seed 1 --rmlabel 3 --percent 1
+CUDA_VISIBLE_DEVICES=1 python train_trades_cifar10.py --model preactresnet --AT-method TRADES_rm  --dataset CIFAR10 --gpu-id 1 --seed 1 --rmlabel 3 --percent 1
 wait
 echo "结束训练......"
 
@@ -86,19 +86,19 @@ echo "结束训练......"
 #wait
 #echo "结束训练......"
 
-echo "开始训练 1......"
-CUDA_VISIBLE_DEVICES=0 python train_trades_cifar10.py --model preactresnet --AT-method TRADES_rm  --dataset CIFAR10 --gpu-id 0 --seed 1 --rmlabel 5 --percent 0.2
-wait
-echo "开始训练 2......"
-CUDA_VISIBLE_DEVICES=0 python train_trades_cifar10.py --model preactresnet --AT-method TRADES_rm  --dataset CIFAR10 --gpu-id 0 --seed 1 --rmlabel 5 --percent 0.4
-wait
-echo "开始训练 3......"
-CUDA_VISIBLE_DEVICES=0 python train_trades_cifar10.py --model preactresnet --AT-method TRADES_rm  --dataset CIFAR10 --gpu-id 0 --seed 1 --rmlabel 5 --percent 0.6
-wait
-echo "开始训练 4......"
-CUDA_VISIBLE_DEVICES=0 python train_trades_cifar10.py --model preactresnet --AT-method TRADES_rm  --dataset CIFAR10 --gpu-id 0 --seed 1 --rmlabel 5 --percent 0.8
-wait
-echo "开始训练 5......"
-CUDA_VISIBLE_DEVICES=0 python train_trades_cifar10.py --model preactresnet --AT-method TRADES_rm  --dataset CIFAR10 --gpu-id 0 --seed 1 --rmlabel 5 --percent 1
-wait
-echo "结束训练......"
+#echo "开始训练 1......"
+#CUDA_VISIBLE_DEVICES=1 python train_trades_cifar10.py --model preactresnet --AT-method TRADES_rm  --dataset CIFAR10 --gpu-id 1 --seed 1 --rmlabel 5 --percent 0.2
+#wait
+#echo "开始训练 2......"
+#CUDA_VISIBLE_DEVICES=1 python train_trades_cifar10.py --model preactresnet --AT-method TRADES_rm  --dataset CIFAR10 --gpu-id 1 --seed 1 --rmlabel 5 --percent 0.4
+#wait
+#echo "开始训练 3......"
+#CUDA_VISIBLE_DEVICES=1 python train_trades_cifar10.py --model preactresnet --AT-method TRADES_rm  --dataset CIFAR10 --gpu-id 1 --seed 1 --rmlabel 5 --percent 0.6
+#wait
+#echo "开始训练 4......"
+#CUDA_VISIBLE_DEVICES=1 python train_trades_cifar10.py --model preactresnet --AT-method TRADES_rm  --dataset CIFAR10 --gpu-id 1 --seed 1 --rmlabel 5 --percent 0.8
+#wait
+#echo "开始训练 5......"
+#CUDA_VISIBLE_DEVICES=1 python train_trades_cifar10.py --model preactresnet --AT-method TRADES_rm  --dataset CIFAR10 --gpu-id 1 --seed 1 --rmlabel 5 --percent 1
+#wait
+#echo "结束训练......"
