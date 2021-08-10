@@ -79,6 +79,7 @@
 ## 只对 3 做 aug；3，5 一起 aug
 ##CUDA_VISIBLE_DEVICES=0 python train_trades_cifar10.py --model preactresnet --AT-method TRADES_loss_adp  --dataset CIFAR10 --gpu-id 0 --seed 7 --beta 1 --beta_aug 6 --list_aug 3
 ##CUDA_VISIBLE_DEVICES=0 python train_trades_cifar10.py --model preactresnet --AT-method TRADES_loss_adp  --dataset CIFAR10 --gpu-id 0 --seed 8 --beta 1 --beta_aug 6 --list_aug 3 5
+##CUDA_VISIBLE_DEVICES=0 python train_trades_cifar10.py --model preactresnet --AT-method TRADES_loss_adp  --dataset CIFAR10 --gpu-id 0 --seed 9 --beta 1 --beta_aug 6 --list_aug 3 --rmlabel 5
 #echo "结束训练......"
 
 # TRADES_aug (CIFAR10)

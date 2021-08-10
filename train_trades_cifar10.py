@@ -20,6 +20,7 @@ from pgd import pgd_loss
 from torch.utils.tensorboard import SummaryWriter
 import random
 from dataset.cifar10_keeplabel import CIFAR10KP, CIFAR100KP
+from dataset.cifar10_rmlabel import CIFAR10RM
 from dataset.imagnette import *
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR TRADES Adversarial Training')
@@ -36,7 +37,7 @@ parser.add_argument('--droprate', type=float, default=0.0, metavar='N',
                     help='model droprate (default: 0.0)')
 
 parser.add_argument('--AT-method', type=str, default='TRADES',
-                    help='AT method', choices=['TRADES', 'TRADES_loss_adp',
+                    help='AT method', choices=['TRADES', 'TRADES_rm', 'TRADES_loss_adp',
                                                'TRADES_aug', 'TRADES_augmulti', 'TRADES_aug_pgd', 'TRADES_aug_pgdattk',
                                                'PGD', 'ST', 'ST_adp'])
 # parser.add_argument('--epochs', type=int, default=76, metavar='N',
@@ -84,6 +85,10 @@ parser.add_argument('--dataset', default='CIFAR10', choices=['CIFAR10', 'CIFAR10
 parser.add_argument('--beta_aug', default=6.0, type=float, help='regularization, i.e., 1/lambda in TRADES')
 # parser.add_argument('--list_aug', default=[2, 3, 4, 5], type=float, help='regularization, i.e., 1/lambda in TRADES')
 parser.add_argument('--list_aug', nargs='+', type=int)
+
+# remove label data
+parser.add_argument('--rmlabel', type=int, help='Label of the remove part of training data')
+parser.add_argument('--percent', default=1, type=float, help='Percentage of deleted data')
 args = parser.parse_args()
 
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
@@ -94,6 +99,8 @@ factors = 'e' + str(args.epsilon) + '_depth' + str(args.depth) + '_' + 'widen' +
 if args.fair is not None:
     model_dir = args.model_dir + args.model + '/' + args.AT_method +\
                 '_fair_' + args.fair + '_fl_' + args.fairloss + '_T' + str(args.T)+'_L' + str(args.lamda)
+elif args.AT_method == 'TRADES_rm':
+    model_dir = args.model_dir + args.model + '/' + args.AT_method + '_' + args.dataset + '/rm_'+ str(args.rmlabel) + '/percent_' + str(args.seed) + '/seed' + str(args.seed)
 else:
     # model_dir = args.model_dir + args.model + '/' + args.AT_method
     # model_dir = args.model_dir + args.model + '/' + args.AT_method + '_' + args.dataset + '/kplabel' + '/percent_' + str(args.percent)
@@ -131,7 +138,10 @@ transform_test = transforms.Compose([
     # transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
 ])
 if args.dataset == 'CIFAR10':
-    trainset = torchvision.datasets.CIFAR10(root='../data', train=True, download=True, transform=transform_train)
+    if args.rmlabel:  # 如果删除特定化 label
+        trainset = CIFAR10RM(root='../data', train=True, download=True, transform=transform_train, args=args)
+    else:
+        trainset = torchvision.datasets.CIFAR10(root='../data', train=True, download=True, transform=transform_train)
     train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
     testset = torchvision.datasets.CIFAR10(root='../data', train=False, download=True, transform=transform_test)
     test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
@@ -294,8 +304,12 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
                                perturb_steps=args.num_steps, beta=args.beta)
         elif args.AT_method == 'TRADES':
             loss = trades_loss(model=model, x_natural=data, y=target,
-                           optimizer=optimizer, step_size=args.step_size, epsilon=args.epsilon,
-                           perturb_steps=args.num_steps, beta=args.beta)
+                                   optimizer=optimizer, step_size=args.step_size, epsilon=args.epsilon,
+                                   perturb_steps=args.num_steps, beta=args.beta)
+        # elif args.AT_method == 'TRADES_rm':
+        #     loss = trades_loss_rm(model=model, x_natural=data, y=target,
+        #                            optimizer=optimizer, step_size=args.step_size, epsilon=args.epsilon,
+        #                            perturb_steps=args.num_steps, beta=args.beta, beta_aug=args.beta_aug, list_aug=args.list_aug)
         elif args.AT_method == 'TRADES_loss_adp':
             loss = trades_loss_adp(model=model, x_natural=data, y=target,
                                    optimizer=optimizer, step_size=args.step_size, epsilon=args.epsilon,
