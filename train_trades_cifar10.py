@@ -38,7 +38,7 @@ parser.add_argument('--droprate', type=float, default=0.0, metavar='N',
 
 parser.add_argument('--AT-method', type=str, default='TRADES',
                     help='AT method', choices=['TRADES', 'TRADES_rm', 'TRADES_loss_adp', 'TRADES_ST_adp',
-                                               'TRADES_aug', 'TRADES_augmulti', 'TRADES_aug_pgd', 'TRADES_aug_pgdattk',
+                                               'TRADES_aug', 'TRADES_augmulti', 'TRADES_aug_pgd', 'TRADES_aug_pgdattk', 'TRADES_aug_pgdattk2',
                                                'PGD', 'ST', 'ST_adp'])
 # parser.add_argument('--epochs', type=int, default=76, metavar='N',
 parser.add_argument('--epochs', type=int, default=100, metavar='N',
@@ -330,6 +330,10 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
                                    perturb_steps=args.num_steps, beta=args.beta, beta_aug=args.beta_aug)
         elif args.AT_method == 'TRADES_aug_pgdattk':
             loss = trades_loss_aug_pgdattk(model=model, x_natural=data, y=target,
+                                       optimizer=optimizer, step_size=args.step_size, epsilon=args.epsilon,
+                                       perturb_steps=args.num_steps, beta=args.beta, beta_aug=args.beta_aug)
+        elif args.AT_method == 'TRADES_aug_pgdattk2':
+            loss = trades_loss_aug_pgdattk2(model=model, x_natural=data, y=target,
                                        optimizer=optimizer, step_size=args.step_size, epsilon=args.epsilon,
                                        perturb_steps=args.num_steps, beta=args.beta, beta_aug=args.beta_aug)
         elif args.AT_method == 'TRADES_augSA':
