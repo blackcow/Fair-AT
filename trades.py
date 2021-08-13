@@ -536,13 +536,13 @@ def trades_loss_aug_pgdattk2(model, x_natural, y, optimizer, step_size=0.003, ep
     optimizer.zero_grad()
     # calculate robust loss
     _, logits_x = model(x_natural)
-    # logits_x_aug = torch.index_select(logits_x, 0, idx)
+    logits_x_aug = torch.index_select(logits_x, 0, idx)
     _, logits_adv = model(x_adv)
     _, logits_adv_aug = model(x_adv_aug)
 
     loss_natural = F.cross_entropy(logits_x, y)
     loss_robust = (1.0 / batch_size) * criterion_kl(F.log_softmax(logits_adv, dim=1), F.softmax(logits_x, dim=1))
-    loss_robust_aug = (1.0 / len(y_aug)) * criterion_kl(F.log_softmax(logits_adv_aug, dim=1), F.softmax(logits_x, dim=1))
+    loss_robust_aug = (1.0 / len(y_aug)) * criterion_kl(F.log_softmax(logits_adv_aug, dim=1), F.softmax(logits_x_aug, dim=1))
     loss = loss_natural + beta * loss_robust + beta_aug * loss_robust_aug
     return loss
 
