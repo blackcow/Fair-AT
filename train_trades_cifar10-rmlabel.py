@@ -24,6 +24,7 @@ from torch.utils.tensorboard import SummaryWriter
 from dataset.cifar10_rmlabel import CIFAR10RM, CIFAR100RM
 import random
 from dataset.imagenet10_rmlabel import ImageFolderRM
+from dataset.svhn_rmlabel import SVHNKP
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR TRADES Adversarial Training')
 parser.add_argument('--batch-size', type=int, default=128, metavar='N',
@@ -78,7 +79,7 @@ parser.add_argument('--fl_lamda', default=0.1, type=float, help='lamda of fairlo
 parser.add_argument('--dataset', default='CIFAR10', choices=['CIFAR10', 'CIFAR100', 'STL10', 'Imagnette', 'SVHN', 'ImageNet10'], help='train model on dataset')
 # remove label data
 parser.add_argument('--rmlabel', default=3, type=int, help='Label of the deleted training data')
-# parser.add_argument('--percent', default=1, type=float, help='Percentage of deleted data')
+parser.add_argument('--percent', default=1, type=float, help='Percentage of deleted data')
 args = parser.parse_args()
 
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
@@ -122,6 +123,11 @@ transform_test = transforms.Compose([
     transforms.ToTensor(),
     # transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
 ])
+transform_train_svhn = transforms.Compose([
+    transforms.RandomCrop(32, padding=4),
+    transforms.RandomHorizontalFlip(),
+    transforms.ToTensor(),
+])
 if args.dataset == 'CIFAR10':
     trainset = torchvision.datasets.CIFAR10(root='../data', train=True, download=True, transform=transform_train)
     train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
@@ -147,8 +153,8 @@ elif args.dataset == 'Imagnette':
     # testset = ImagenetteTest()
     test_loader = torch.utils.data.DataLoader(testset, batch_size=64, shuffle=False)
 elif args.dataset == 'SVHN':
-    # trainset = SVHNKP(root='../data', split="train", transform=transform_train, download=True, args=args)
-    trainset = torchvision.datasets.SVHN(root='../data', split="train", transform=transform_train, download=True)
+    trainset = SVHNKP(root='../data', split="train", transform=transform_train, download=True, args=args)
+    # trainset = torchvision.datasets.SVHN(root='../data', split="train", transform=transform_train, download=True)
     train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
     # extraset = torchvision.datasets.SVHN(root='../data', split="extra", transform=transform_train, download=True)
     # extra_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
