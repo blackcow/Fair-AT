@@ -667,9 +667,9 @@ def st_adp(model, x_natural, y, list_aug, alpha):
 
 # 针对特定 label ST, 调整 conflict pair 之间 feature 的距离
 # [2,3,4,5] ST loss 调整权重
-def st_el(model, x_natural, y, list_aug, alpha):
+def st_el(model, x_natural, y, list_aug, alpha, temperature):
     # 找特定 label 的 idx，对不同的 label 设置不同权重
-    temperature = 0.1
+    # temperature = 0.1
     list_all = [i for i in range(10)]
     list_oth = list(set(list_all) - set(list_aug))
     idx1 = []

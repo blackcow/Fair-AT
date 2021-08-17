@@ -83,6 +83,8 @@ parser.add_argument('--dataset', default='CIFAR10', choices=['CIFAR10', 'CIFAR10
 
 # ST adp
 parser.add_argument('--alpha', default=0.1, type=float, help='adaptive weights of ST')
+# ST tmp
+parser.add_argument('--tmp', default=0.1, type=float, help='temperature of ST')
 # aug
 parser.add_argument('--beta_aug', default=6.0, type=float, help='regularization, i.e., 1/lambda in TRADES')
 # parser.add_argument('--list_aug', default=[2, 3, 4, 5], type=float, help='regularization, i.e., 1/lambda in TRADES')
@@ -350,7 +352,7 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
         elif args.AT_method == 'ST_adp':
             loss = st_adp(model=model, x_natural=data, y=target, alpha=args.alpha, list_aug=args.list_aug)
         elif args.AT_method == 'ST_el':
-            loss = st_el(model=model, x_natural=data, y=target, alpha=args.alpha, list_aug=args.list_aug)
+            loss = st_el(model=model, x_natural=data, y=target, alpha=args.alpha, list_aug=args.list_aug, temperature=args.tmp)
 
         # 不调整顺序 这里只计算了 benign 的 rep
         elif args.AT_method == 'ST' and args.fair is not None:
