@@ -17,8 +17,3 @@ echo "开始训练 5......"
 CUDA_VISIBLE_DEVICES=3 python train_trades_cifar10.py --model preactresnet --AT-method ST_only_el  --dataset CIFAR10 --gpu-id 3 --seed 5 --list_aug 3 5 --alpha 4 --tmp 1
 wait
 echo "结束训练......"
-
-
-
-
-

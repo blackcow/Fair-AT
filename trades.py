@@ -853,19 +853,22 @@ def st_el_logits(model, x_natural, y, list_aug, alpha, temperature):
     # exp_logits1 = torch.exp(logits_intra1)
     # exp_logits2 = torch.exp(logits_intra2)
 
-    # 计算 inter dis
-    logits_inter = torch.matmul(logits_x_1, logits_x_2.T) / temperature
-    # logits_max, _ = torch.max(logits_inter, dim=1, keepdim=True)
-    # logits_inter = logits_inter - logits_max1.detach()
-    exp_inter = torch.exp(logits_inter)
+    if len_1 == 0 or len_2==0:
+        loss_el = 0
+    else:
+        # 计算 inter dis
+        logits_inter = torch.matmul(logits_x_1, logits_x_2.T) / temperature
+        # logits_max, _ = torch.max(logits_inter, dim=1, keepdim=True)
+        # logits_inter = logits_inter - logits_max1.detach()
+        exp_inter = torch.exp(logits_inter)
 
-    # 计算 intra 相似度，对角线的 1 减掉；计算 inter 相似度；两者相除
-    # prob = (exp_logits1.sum()-len_1 + exp_logits2.sum()-len_2) / exp_inter.sum()
-    prob = exp_inter.sum()
+        # 计算 intra 相似度，对角线的 1 减掉；计算 inter 相似度；两者相除
+        # prob = (exp_logits1.sum()-len_1 + exp_logits2.sum()-len_2) / exp_inter.sum()
+        prob = exp_inter.sum()
 
-    # Mean log-likelihood for positive
-    loss_el = (torch.log((prob))) / (len_1+len_2)
-    # inter loss，类间距离
+        # Mean log-likelihood for positive
+        loss_el = (torch.log((prob))) / (len_1+len_2)
+        # inter loss，类间距离
 
     # 计算 natural loss
     loss_natural = F.cross_entropy(logits_x, y)
