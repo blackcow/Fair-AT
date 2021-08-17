@@ -762,3 +762,112 @@ def st_el2(model, x_natural, y, list_aug, alpha):
     # inter loss，类间距离
     loss = loss_natural + loss_el * alpha
     return loss
+
+
+# 针对特定 label ST, 只调整 conflict pair 的类间距，类内距不算了
+# logits_inter 减去了最大值
+def st_only_el(model, x_natural, y, list_aug, alpha, temperature):
+    # 找特定 label 的 idx，对不同的 label 设置不同权重
+    # temperature = 0.1
+    list_all = [i for i in range(10)]
+    list_oth = list(set(list_all) - set(list_aug))
+    idx1 = []
+    idx2 = []
+    idx1.append((y == 3).nonzero().flatten())
+    idx2.append((y == 5).nonzero().flatten())
+    idx1 = torch.cat(idx1)
+    idx2 = torch.cat(idx2)
+    len_1 = len(idx1)
+    len_2 = len(idx2)
+
+    # calculate natural loss
+    rep_x, logits_x = model(x_natural)
+    rep_x = F.adaptive_avg_pool2d(rep_x, (1, 1))
+    rep_x = F.normalize(rep_x.squeeze(), dim=1)
+    rep_x_p1 = torch.index_select(rep_x, 0, idx1)
+    rep_x_p2 = torch.index_select(rep_x, 0, idx2)
+    y1 = torch.index_select(y, 0, idx1)
+    y2 = torch.index_select(y, 0, idx2)
+    # 计算 natural loss
+    loss_natural = F.cross_entropy(logits_x, y)
+
+    # 计算 intra dis，类内距离
+    rep_intra1 = torch.matmul(rep_x_p1, rep_x_p1.T) / temperature
+    rep_intra2 = torch.matmul(rep_x_p2, rep_x_p2.T) / temperature
+    # Log-sum trick for numerical stability
+    # 计算内积距离后，最近的值为 1/ self.temperature，所以减去最大值后，最近为 0，远离为负值
+    logits_max1, _ = torch.max(rep_intra1, dim=1, keepdim=True)
+    logits_max2, _ = torch.max(rep_intra2, dim=1, keepdim=True)
+    logits_intra1 = rep_intra1 - logits_max1.detach()
+    logits_intra2 = rep_intra2 - logits_max2.detach()
+    exp_logits1 = torch.exp(logits_intra1)
+    exp_logits2 = torch.exp(logits_intra2)
+
+    # 计算 inter dis
+    rep_inter = torch.matmul(rep_x_p1, rep_x_p2.T) / temperature
+    logits_max, _ = torch.max(rep_inter, dim=1, keepdim=True)
+    logits_inter = rep_inter - logits_max1.detach()
+    exp_inter = torch.exp(logits_inter)
+
+    # 计算 intra 相似度，对角线的 1 减掉；计算 inter 相似度；两者相除
+    # prob = (exp_logits1.sum()-len_1 + exp_logits2.sum()-len_2) / exp_inter.sum()
+    prob = 1 / exp_inter.sum()
+
+    # Mean log-likelihood for positive
+    loss_el = - (torch.log((prob))) / (len_1+len_2)
+    # inter loss，类间距离
+    loss = loss_natural + loss_el * alpha
+    return loss
+
+
+# 针对特定 label ST, 调整 conflict pair 之间 feature 的距离
+# logits 的内积尽量为负数，这项 loss 最小为 0
+# logits_inter 没减最大值，直接算
+def st_el_logits(model, x_natural, y, list_aug, alpha, temperature):
+    # 找特定 label 的 idx，对不同的 label 设置不同权重
+    list_all = [i for i in range(10)]
+    list_oth = list(set(list_all) - set(list_aug))
+    idx1 = []
+    idx2 = []
+    idx1.append((y == 3).nonzero().flatten())
+    idx2.append((y == 5).nonzero().flatten())
+    idx1 = torch.cat(idx1)
+    idx2 = torch.cat(idx2)
+    len_1 = len(idx1)
+    len_2 = len(idx2)
+
+    # calculate natural loss
+    rep_x, logits_x = model(x_natural)
+
+    logits_x_1 = torch.index_select(logits_x, 0, idx1)
+    logits_x_2 = torch.index_select(logits_x, 0, idx2)
+
+    # # 计算 intra dis，类内距离
+    # logits_intra1 = torch.matmul(logits_x_1, logits_x_1.T) / temperature
+    # logits_intra2 = torch.matmul(logits_x_2, logits_x_2.T) / temperature
+    # # 计算内积距离后，最近的值为 1/ self.temperature，所以减去最大值后，最近为 0，远离为负值
+    # logits_max1, _ = torch.max(logits_intra1, dim=1, keepdim=True)
+    # logits_max2, _ = torch.max(logits_intra2, dim=1, keepdim=True)
+    # logits_intra1 = logits_intra1 - logits_max1.detach()
+    # logits_intra2 = logits_intra2 - logits_max2.detach()
+    # exp_logits1 = torch.exp(logits_intra1)
+    # exp_logits2 = torch.exp(logits_intra2)
+
+    # 计算 inter dis
+    logits_inter = torch.matmul(logits_x_1, logits_x_2.T) / temperature
+    # logits_max, _ = torch.max(logits_inter, dim=1, keepdim=True)
+    # logits_inter = logits_inter - logits_max1.detach()
+    exp_inter = torch.exp(logits_inter)
+
+    # 计算 intra 相似度，对角线的 1 减掉；计算 inter 相似度；两者相除
+    # prob = (exp_logits1.sum()-len_1 + exp_logits2.sum()-len_2) / exp_inter.sum()
+    prob = exp_inter.sum()
+
+    # Mean log-likelihood for positive
+    loss_el = (torch.log((prob))) / (len_1+len_2)
+    # inter loss，类间距离
+
+    # 计算 natural loss
+    loss_natural = F.cross_entropy(logits_x, y)
+    loss = loss_natural + loss_el * alpha
+    return loss
