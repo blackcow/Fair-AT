@@ -285,7 +285,7 @@ def trades_loss_aug(model, x_natural, y, optimizer, step_size=0.003, epsilon=0.0
     return loss
 
 
-# 生成 aug 的 adv data
+# 生成 aug 的 adv data，用基于 TRADES 的方法
 def adv_aug(model, x_natural, step_size=0.003, epsilon=0.031, perturb_steps=10):
     criterion_kl = nn.KLDivLoss(size_average=False)
 

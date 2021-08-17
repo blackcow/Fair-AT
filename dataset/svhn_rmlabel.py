@@ -102,17 +102,16 @@ class SVHNKP(VisionDataset):
         start = 0
 
         for i in range(len(dict)):
-            if i != args.rmlabel: # 针对非删除的 label 拼接，删除 label 不插入
-                end = int(start + dict[i] * percent)
-                print('start:{}  end:{}'.format(start,end))
-                # print('end:', end)
+            # 针对非删除的 label 拼接，删除 label 不插入
+            end = int(start + dict[i] * percent)
+            print('start:{}  end:{}'.format(start, end))
+            # print('end:', end)
+            if i != args.rmlabel:
                 labels_tmp = labels_tmp + self.labels[start:end]
-                if i == 0:
-                    data_tmp = self.data[start:end]
-                else:
-                    data_tmp = np.concatenate((data_tmp, self.data[start:end]), axis=0)
-                start = start + dict[i]
-        self.data = data_tmp
+                data_tmp.append(self.data[start:end])
+            # data_tmp = np.concatenate((data_tmp, self.data[start:end]), axis=0)
+            start = start + dict[i]
+        self.data = np.concatenate((data_tmp), axis=0)
         self.labels = np.array(labels_tmp)
 
     def __getitem__(self, index: int) -> Tuple[Any, Any]:
