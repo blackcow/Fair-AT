@@ -1,12 +1,12 @@
 #!/usr/bin/env zsh
 
 # TRADES (SVHN), rmlabel;先把 0-9 依次训练完
-echo "开始训练 1......"
-CUDA_VISIBLE_DEVICES=1,2 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset SVHN --gpu-id 1,2 --seed 1 --rmlabel 0
-wait
-echo "开始训练 2......"
-CUDA_VISIBLE_DEVICES=1,2 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset SVHN --gpu-id 1,2 --seed 1 --rmlabel 1
-wait
+#echo "开始训练 1......"
+#CUDA_VISIBLE_DEVICES=1,2 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset SVHN --gpu-id 1,2 --seed 1 --rmlabel 0
+#wait
+#echo "开始训练 2......"
+#CUDA_VISIBLE_DEVICES=1,2 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset SVHN --gpu-id 1,2 --seed 1 --rmlabel 1
+#wait
 echo "开始训练 3......"
 CUDA_VISIBLE_DEVICES=1,2 python train_trades_cifar10-rmlabel.py --model preactresnet --AT-method TRADES --dataset SVHN --gpu-id 1,2 --seed 1 --rmlabel 2
 wait
