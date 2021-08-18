@@ -15,6 +15,7 @@ from models.densenet import *
 from models.preactresnet import create_network
 from models.resnet import *
 from trades import *
+from trades_my import *
 from tradesfair import trades_fair_loss
 from pgd import pgd_loss
 from torch.utils.tensorboard import SummaryWriter
@@ -39,6 +40,7 @@ parser.add_argument('--droprate', type=float, default=0.0, metavar='N',
 parser.add_argument('--AT-method', type=str, default='TRADES',
                     help='AT method', choices=['TRADES', 'TRADES_rm', 'TRADES_loss_adp', 'TRADES_ST_adp',
                                                'TRADES_aug', 'TRADES_augmulti', 'TRADES_aug_pgd', 'TRADES_aug_pgdattk', 'TRADES_aug_pgdattk2',
+                                               'TRADES_el',
                                                'PGD', 'ST', 'ST_adp', 'ST_el', 'ST_only_el', 'ST_el_logits'])
 # parser.add_argument('--epochs', type=int, default=76, metavar='N',
 parser.add_argument('--epochs', type=int, default=100, metavar='N',
@@ -359,7 +361,10 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
         elif args.AT_method == 'ST_el_logits':
             loss = st_el_logits(model=model, x_natural=data, y=target, alpha=args.alpha, list_aug=args.list_aug,
                          temperature=args.tmp)
-
+        elif args.AT_method == 'TRADES_el':
+            loss = trades_loss_el(model=model, x_natural=data, y=target, optimizer=optimizer, step_size=args.step_size, epsilon=args.epsilon,
+                        perturb_steps=args.num_steps, beta=args.beta,
+                                alpha=args.alpha, list_aug=args.list_aug, temperature=args.tmp)
 
 
         # 不调整顺序 这里只计算了 benign 的 rep
