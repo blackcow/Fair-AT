@@ -106,7 +106,7 @@ if args.fair is not None:
     model_dir = args.model_dir + args.model + '/' + args.AT_method +\
                 '_fair_' + args.fair + '_fl_' + args.fairloss + '_T' + str(args.T)+'_L' + str(args.lamda)
 elif args.AT_method == 'TRADES_rm':
-    model_dir = args.model_dir + args.model + '/' + args.AT_method + '_' + args.dataset + '/rm_'+ str(args.rmlabel) + '/percent_' + str(args.seed) + '/seed' + str(args.seed)
+    model_dir = args.model_dir + args.model + '/' + args.AT_method + '_' + args.dataset + '/rm_'+ str(args.rmlabel) + '/percent_' + str(args.percent) + '/seed' + str(args.seed)
 else:
     # model_dir = args.model_dir + args.model + '/' + args.AT_method
     # model_dir = args.model_dir + args.model + '/' + args.AT_method + '_' + args.dataset + '/kplabel' + '/percent_' + str(args.percent)
