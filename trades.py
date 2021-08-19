@@ -735,37 +735,40 @@ def st_el_fix(model, x_natural, y, list_aug, alpha, temperature):
     len_2 = len(idx2)
 
     rep_x, logits_x = model(x_natural)
-    rep_x = F.adaptive_avg_pool2d(rep_x, (1, 1))
-    rep_x = F.normalize(rep_x.squeeze(), dim=1)
-    rep_x_p1 = torch.index_select(rep_x, 0, idx1)
-    rep_x_p2 = torch.index_select(rep_x, 0, idx2)
-    y1 = torch.index_select(y, 0, idx1)
-    y2 = torch.index_select(y, 0, idx2)
-    # 计算 natural loss
     loss_natural = F.cross_entropy(logits_x, y)
 
-    # 计算 intra dis，类内距离
-    rep_intra1 = torch.matmul(rep_x_p1, rep_x_p1.T) / temperature
-    rep_intra2 = torch.matmul(rep_x_p2, rep_x_p2.T) / temperature
-    # Log-sum trick for numerical stability
-    # 计算内积距离后，最近的值为 1/ self.temperature，所以减去最大值后，最近为 0，远离为负值
-    logits_max1, _ = torch.max(rep_intra1, dim=1, keepdim=True)
-    logits_max2, _ = torch.max(rep_intra2, dim=1, keepdim=True)
-    logits_intra1 = rep_intra1 - logits_max1.detach()
-    logits_intra2 = rep_intra2 - logits_max2.detach()
-    exp_logits1 = torch.exp(logits_intra1)
-    exp_logits2 = torch.exp(logits_intra2)
+    if len_1 == 0 or len_2 == 0:
+        loss_el = 0
+    else:
+        rep_x = F.adaptive_avg_pool2d(rep_x, (1, 1))
+        rep_x = F.normalize(rep_x.squeeze(), dim=1)
+        rep_x_p1 = torch.index_select(rep_x, 0, idx1)
+        rep_x_p2 = torch.index_select(rep_x, 0, idx2)
+        y1 = torch.index_select(y, 0, idx1)
+        y2 = torch.index_select(y, 0, idx2)
 
-    # 计算 inter dis
-    rep_inter = torch.matmul(rep_x_p1, rep_x_p2.T) / temperature
-    logits_max, _ = torch.max(rep_inter, dim=1, keepdim=True)
-    logits_inter = rep_inter - logits_max1.detach()
-    exp_inter = torch.exp(logits_inter)
+        # 计算 intra dis，类内距离
+        rep_intra1 = torch.matmul(rep_x_p1, rep_x_p1.T) / temperature
+        rep_intra2 = torch.matmul(rep_x_p2, rep_x_p2.T) / temperature
+        # Log-sum trick for numerical stability
+        # 计算内积距离后，最近的值为 1/ self.temperature，所以减去最大值后，最近为 0，远离为负值
+        logits_max1, _ = torch.max(rep_intra1, dim=1, keepdim=True)
+        logits_max2, _ = torch.max(rep_intra2, dim=1, keepdim=True)
+        logits_intra1 = rep_intra1 - logits_max1.detach()
+        logits_intra2 = rep_intra2 - logits_max2.detach()
+        exp_logits1 = torch.exp(logits_intra1)
+        exp_logits2 = torch.exp(logits_intra2)
 
-    # 计算 intra 相似度，对角线的 1 减掉；除掉 3 点对 5 点的距离；分别计算均值后的 log，然后求和
-    exp_logits1 = (exp_logits1 - torch.eye(len_1).cuda()) / exp_inter.sum(dim=1)
-    exp_logits2 = (exp_logits2 - torch.eye(len_2).cuda()) / exp_inter.sum(dim=0)
-    loss_el = - torch.log(exp_logits1.sum()/len_1) - torch.log(exp_logits2.sum()/len_2)
+        # 计算 inter dis
+        rep_inter = torch.matmul(rep_x_p1, rep_x_p2.T) / temperature
+        logits_max, _ = torch.max(rep_inter, dim=1, keepdim=True)
+        logits_inter = rep_inter - logits_max1.detach()
+        exp_inter = torch.exp(logits_inter)
+
+        # 计算 intra 相似度，对角线的 1 减掉；除掉 3 点对 5 点的距离；分别计算均值后的 log，然后求和
+        exp_logits1 = (exp_logits1 - torch.eye(len_1).cuda()) / exp_inter.sum(dim=1)
+        exp_logits2 = (exp_logits2 - torch.eye(len_2).cuda()) / exp_inter.sum(dim=0)
+        loss_el = - torch.log(exp_logits1.sum()/len_1) - torch.log(exp_logits2.sum()/len_2)
 
     # inter loss，类间距离
     loss = loss_natural + loss_el * alpha
@@ -828,40 +831,42 @@ def st_el_li(model, x_natural, y, list_aug, alpha, temperature):
     len_2 = len(idx2)
 
     rep_x, logits_x = model(x_natural)
-    rep_x = F.adaptive_avg_pool2d(rep_x, (1, 1))
-    rep_x = F.normalize(rep_x.squeeze(), dim=1)
-    rep_x_p1 = torch.index_select(rep_x, 0, idx1)
-    rep_x_p2 = torch.index_select(rep_x, 0, idx2)
-    y1 = torch.index_select(y, 0, idx1)
-    y2 = torch.index_select(y, 0, idx2)
-    # 计算 natural loss
     loss_natural = F.cross_entropy(logits_x, y)
 
-    # 计算 intra dis，类内距离
-    rep_intra1 = torch.matmul(rep_x_p1, rep_x_p1.T) / temperature
-    rep_intra2 = torch.matmul(rep_x_p2, rep_x_p2.T) / temperature
-    # Log-sum trick for numerical stability
-    # 计算内积距离后，最近的值为 1/ self.temperature，所以减去最大值后，最近为 0，远离为负值
-    logits_max1, _ = torch.max(rep_intra1, dim=1, keepdim=True)
-    logits_max2, _ = torch.max(rep_intra2, dim=1, keepdim=True)
-    logits_intra1 = rep_intra1 - logits_max1.detach()
-    logits_intra2 = rep_intra2 - logits_max2.detach()
-    exp_logits1 = torch.exp(logits_intra1)
-    exp_logits2 = torch.exp(logits_intra2)
+    if len_1 == 0 or len_2 == 0:
+        loss_el = 0
+    else:
+        rep_x = F.adaptive_avg_pool2d(rep_x, (1, 1))
+        rep_x = F.normalize(rep_x.squeeze(), dim=1)
+        rep_x_p1 = torch.index_select(rep_x, 0, idx1)
+        rep_x_p2 = torch.index_select(rep_x, 0, idx2)
+        y1 = torch.index_select(y, 0, idx1)
+        y2 = torch.index_select(y, 0, idx2)
+        # 计算 intra dis，类内距离
+        rep_intra1 = torch.matmul(rep_x_p1, rep_x_p1.T) / temperature
+        rep_intra2 = torch.matmul(rep_x_p2, rep_x_p2.T) / temperature
+        # Log-sum trick for numerical stability
+        # 计算内积距离后，最近的值为 1/ self.temperature，所以减去最大值后，最近为 0，远离为负值
+        logits_max1, _ = torch.max(rep_intra1, dim=1, keepdim=True)
+        logits_max2, _ = torch.max(rep_intra2, dim=1, keepdim=True)
+        logits_intra1 = rep_intra1 - logits_max1.detach()
+        logits_intra2 = rep_intra2 - logits_max2.detach()
+        exp_logits1 = torch.exp(logits_intra1)
+        exp_logits2 = torch.exp(logits_intra2)
 
-    # 计算 inter dis
-    rep_inter = torch.matmul(rep_x_p1, rep_x_p2.T) / temperature
-    logits_max, _ = torch.max(rep_inter, dim=1, keepdim=True)
-    logits_inter = rep_inter - logits_max1.detach()
-    exp_inter = torch.exp(logits_inter)
+        # 计算 inter dis
+        rep_inter = torch.matmul(rep_x_p1, rep_x_p2.T) / temperature
+        logits_max, _ = torch.max(rep_inter, dim=1, keepdim=True)
+        logits_inter = rep_inter - logits_max1.detach()
+        exp_inter = torch.exp(logits_inter)
 
-    # libo 提出, 计算 intra 相似度
-    exp_logits1 = exp_logits1 / exp_inter.sum(dim=1)
-    exp_logits2 = exp_logits2 / exp_inter.sum(dim=0)
-    prob = exp_logits1.sum() + exp_logits2.sum()
+        # libo 提出, 计算 intra 相似度
+        exp_logits1 = exp_logits1 / exp_inter.sum(dim=1)
+        exp_logits2 = exp_logits2 / exp_inter.sum(dim=0)
+        prob = exp_logits1.sum() + exp_logits2.sum()
 
-    # Mean log-likelihood for positive
-    loss_el = - (torch.log((prob))) / (len_1+len_2)
+        # Mean log-likelihood for positive
+        loss_el = - (torch.log((prob))) / (len_1+len_2)
 
     # inter loss，类间距离
     loss = loss_natural + loss_el * alpha
