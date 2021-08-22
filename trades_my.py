@@ -197,3 +197,59 @@ def trades_loss_el(model, x_natural, y, optimizer, list_aug, alpha, temperature,
     loss = loss_natural + beta * loss_robust + loss_el * alpha
     return loss
 
+
+# 针对特定 label ST, 调整 conflict pair 之间 feature 的距离
+# [2,3,4,5] ST loss 调整权重，权重改为内部调整
+def st_el_li2(model, x_natural, y, list_aug, alpha, temperature):
+    # temperature = 0.1
+    idx1 = []
+    idx2 = []
+    idx1.append((y == 3).nonzero().flatten())
+    idx2.append((y == 5).nonzero().flatten())
+    idx1 = torch.cat(idx1)
+    idx2 = torch.cat(idx2)
+    len_1 = len(idx1)
+    len_2 = len(idx2)
+
+    rep_x, logits_x = model(x_natural)
+    loss_natural = F.cross_entropy(logits_x, y)
+
+    if len_1 == 0 or len_2 == 0:
+        loss_el = 0
+    else:
+        rep_x = F.adaptive_avg_pool2d(rep_x, (1, 1))
+        rep_x = F.normalize(rep_x.squeeze(), dim=1)
+        rep_x_p1 = torch.index_select(rep_x, 0, idx1)
+        rep_x_p2 = torch.index_select(rep_x, 0, idx2)
+        y1 = torch.index_select(y, 0, idx1)
+        y2 = torch.index_select(y, 0, idx2)
+        # 计算 intra dis，类内距离
+        rep_intra1 = torch.matmul(rep_x_p1, rep_x_p1.T) / temperature
+        rep_intra2 = torch.matmul(rep_x_p2, rep_x_p2.T) / temperature
+        # Log-sum trick for numerical stability
+        # 计算内积距离后，最近的值为 1/ self.temperature，所以减去最大值后，最近为 0，远离为负值
+        logits_max1, _ = torch.max(rep_intra1, dim=1, keepdim=True)
+        logits_max2, _ = torch.max(rep_intra2, dim=1, keepdim=True)
+        logits_intra1 = rep_intra1 - logits_max1.detach()
+        logits_intra2 = rep_intra2 - logits_max2.detach()
+        exp_logits1 = torch.exp(logits_intra1)
+        exp_logits2 = torch.exp(logits_intra2)
+
+        # 计算 inter dis
+        rep_inter = torch.matmul(rep_x_p1, rep_x_p2.T) / temperature
+        logits_max, _ = torch.max(rep_inter, dim=1, keepdim=True)
+        logits_inter = rep_inter - logits_max1.detach()
+        exp_inter = torch.exp(logits_inter)
+
+        # Libo 老师讨论后, 计算 intra 相似度
+        exp_logits1 = alpha * exp_logits1 / exp_inter.sum(dim=1)
+        exp_logits2 = alpha * exp_logits2 / exp_inter.sum(dim=0)
+        prob = exp_logits1.sum() + exp_logits2.sum()
+
+        # Mean log-likelihood for positive
+        loss_el = - (torch.log((prob))) / (len_1+len_2)
+
+    # inter loss，类间距离
+    loss = loss_natural + loss_el
+    return loss
+

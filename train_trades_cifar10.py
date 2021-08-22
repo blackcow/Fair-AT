@@ -42,7 +42,7 @@ parser.add_argument('--AT-method', type=str, default='TRADES',
                                                'TRADES_aug', 'TRADES_augmulti', 'TRADES_aug_pgd', 'TRADES_aug_pgdattk', 'TRADES_aug_pgdattk2',
                                                'TRADES_el',
                                                'PGD', 'ST', 'ST_adp', 'ST_el', 'ST_only_el', 'ST_el_logits',
-                                               'ST_el_li', 'ST_el_fix'])
+                                               'ST_el_li', 'ST_el_li2','ST_el_fix'])
 # parser.add_argument('--epochs', type=int, default=76, metavar='N',
 parser.add_argument('--epochs', type=int, default=100, metavar='N',
                     help='number of epochs to train')
@@ -370,7 +370,8 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
                                 alpha=args.alpha, list_aug=args.list_aug, temperature=args.tmp)
         elif args.AT_method == 'ST_el_li':
             loss = st_el_li(model=model, x_natural=data, y=target, alpha=args.alpha, list_aug=args.list_aug, temperature=args.tmp)
-
+        elif args.AT_method == 'ST_el_li2':
+            loss = st_el_li2(model=model, x_natural=data, y=target, alpha=args.alpha, list_aug=args.list_aug, temperature=args.tmp)
 
         # 不调整顺序 这里只计算了 benign 的 rep
         elif args.AT_method == 'ST' and args.fair is not None:

@@ -860,7 +860,7 @@ def st_el_li(model, x_natural, y, list_aug, alpha, temperature):
         logits_inter = rep_inter - logits_max1.detach()
         exp_inter = torch.exp(logits_inter)
 
-        # libo 提出, 计算 intra 相似度
+        # Libo 老师讨论后, 计算 intra 相似度
         exp_logits1 = exp_logits1 / exp_inter.sum(dim=1)
         exp_logits2 = exp_logits2 / exp_inter.sum(dim=0)
         prob = exp_logits1.sum() + exp_logits2.sum()
