@@ -216,6 +216,7 @@ def st_el_li2(model, x_natural, y, list_aug, alpha, temperature):
 
     if len_1 == 0 or len_2 == 0:
         loss_el = 0
+        print(len_1, len_2)
     else:
         rep_x = F.adaptive_avg_pool2d(rep_x, (1, 1))
         rep_x = F.normalize(rep_x.squeeze(), dim=1)
