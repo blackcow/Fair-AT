@@ -254,3 +254,31 @@ def st_el_li2(model, x_natural, y, list_aug, alpha, temperature):
     loss = loss_natural + loss_el
     return loss
 
+class LabelSmoothingLoss(nn.Module):
+    def __init__(self, classes, smoothing=0.0, dim=-1):
+        super(LabelSmoothingLoss, self).__init__()
+        self.confidence = 1.0 - smoothing
+        self.smoothing = smoothing
+        self.cls = classes
+        self.dim = dim
+
+    def forward(self, pred, target):
+        pred = pred.log_softmax(dim=self.dim)
+        with torch.no_grad():
+            # true_dist = pred.data.clone()
+            true_dist = torch.zeros_like(pred)
+            true_dist.fill_(self.smoothing / (self.cls - 1))
+            true_dist.scatter_(1, target.data.unsqueeze(1), self.confidence)
+        return torch.mean(torch.sum(-true_dist * pred, dim=self.dim))
+
+# 使用 label smooth loss 看指标变化，在所有 data 上做
+# [2,3,4,5] ST loss 调整权重，权重改为内部调整
+def st_ls(model, x_natural, y, smooth):
+    rep_x, logits_x = model(x_natural)
+    label_smooth_loss = LabelSmoothingLoss(classes=10, smoothing=smooth)
+    natural_loss = label_smooth_loss(logits_x, y)
+    l = F.cross_entropy(logits_x, y)
+
+    # inter loss，类间距离
+    loss = natural_loss
+    return loss
