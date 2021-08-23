@@ -277,7 +277,7 @@ def st_ls(model, x_natural, y, smooth):
     rep_x, logits_x = model(x_natural)
     label_smooth_loss = LabelSmoothingLoss(classes=10, smoothing=smooth)
     natural_loss = label_smooth_loss(logits_x, y)
-    l = F.cross_entropy(logits_x, y)
+    # l = F.cross_entropy(logits_x, y)
 
     # inter loss，类间距离
     loss = natural_loss
