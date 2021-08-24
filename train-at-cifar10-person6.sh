@@ -6,7 +6,7 @@ echo "开始训练 1......"
 CUDA_VISIBLE_DEVICES=2 python train_trades_cifar10.py --model preactresnet --AT-method TRADES_rm  --dataset CIFAR10 --gpu-id 3 --seed 1 --rmlabel 6 --percent 0.2
 wait
 echo "开始训练 2......"
-CUDA_VISIBLE_DEVICES=2 python train_trades_cifar10.py --model preactresnet --AT-method TRADES_rm  --dataset CIFAR10 --gpu-id 3 --seed 1 --rmlabel 6 --percent 0.6
+CUDA_VISIBLE_DEVICES=2 python train_trades_cifar10.py --model preactresnet --AT-method TRADES_rm  --dataset CIFAR10 --gpu-id 3 --seed 1 --rmlabel 6 --percent 0.4
 wait
 echo "开始训练 3......"
 CUDA_VISIBLE_DEVICES=2 python train_trades_cifar10.py --model preactresnet --AT-method TRADES_rm  --dataset CIFAR10 --gpu-id 3 --seed 1 --rmlabel 6 --percent 0.6
