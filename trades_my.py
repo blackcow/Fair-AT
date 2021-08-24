@@ -272,7 +272,6 @@ class LabelSmoothingLoss(nn.Module):
         return torch.mean(torch.sum(-true_dist * pred, dim=self.dim))
 
 # 使用 label smooth loss 看指标变化，在所有 data 上做
-# [2,3,4,5] ST loss 调整权重，权重改为内部调整
 def st_ls(model, x_natural, y, smooth):
     rep_x, logits_x = model(x_natural)
     label_smooth_loss = LabelSmoothingLoss(classes=10, smoothing=smooth)
@@ -281,4 +280,69 @@ def st_ls(model, x_natural, y, smooth):
 
     # inter loss，类间距离
     loss = natural_loss
+    return loss
+
+# 使用 label smooth loss 看指标变化，在所有 data 上做
+# 仅对 3，5 做 label smooth
+def st_ls35(model, x_natural, y, smooth):
+    idx_ls, idx_other = [], []
+    ls_list = [3, 5]
+    other_list = [i for i in range(10)]
+    for i in ls_list:
+        idx_ls.append((y == i).nonzero().flatten())
+    for i in ls_list:
+        other_list.remove(i)
+    for i in other_list:
+        idx_other.append((y == i).nonzero().flatten())
+    idx_ls = torch.cat(idx_ls)
+    idx_other = torch.cat(idx_other)
+    # ls 使用 label smooth 的 data
+    # 除 ls 之外的其他 data
+    len_ls = len(idx_ls)
+    len_other = len(idx_other)
+
+    _, logits_x = model(x_natural)
+    logits_ls = torch.index_select(logits_x, 0, idx_ls)
+    logits_other = torch.index_select(logits_x, 0, idx_other)
+    y_ls = torch.index_select(y, 0, idx_ls)
+    y_other = torch.index_select(y, 0, idx_other)
+    label_smooth_loss = LabelSmoothingLoss(classes=10, smoothing=smooth)
+    loss_ls = label_smooth_loss(logits_ls, y_ls) * len_ls
+    loss_other = F.cross_entropy(logits_other, y_other) * len_other
+
+    # inter loss，类间距离
+    loss = (loss_ls + loss_other) / (len_ls + len_other)
+    return loss
+
+
+# 使用 label smooth loss 看指标变化，在所有 data 上做
+# 仅 [2, 3, 4, 5] 都做 label smooth
+def st_ls25(model, x_natural, y, smooth):
+    idx_ls, idx_other = [], []
+    ls_list = [2, 3, 4, 5]
+    other_list = [i for i in range(10)]
+    for i in ls_list:
+        idx_ls.append((y == i).nonzero().flatten())
+    for i in ls_list:
+        other_list.remove(i)
+    for i in other_list:
+        idx_other.append((y == i).nonzero().flatten())
+    idx_ls = torch.cat(idx_ls)
+    idx_other = torch.cat(idx_other)
+    # ls 使用 label smooth 的 data
+    # 除 ls 之外的其他 data
+    len_ls = len(idx_ls)
+    len_other = len(idx_other)
+
+    _, logits_x = model(x_natural)
+    logits_ls = torch.index_select(logits_x, 0, idx_ls)
+    logits_other = torch.index_select(logits_x, 0, idx_other)
+    y_ls = torch.index_select(y, 0, idx_ls)
+    y_other = torch.index_select(y, 0, idx_other)
+    label_smooth_loss = LabelSmoothingLoss(classes=10, smoothing=smooth)
+    loss_ls = label_smooth_loss(logits_ls, y_ls) * len_ls
+    loss_other = F.cross_entropy(logits_other, y_other) * len_other
+
+    # inter loss，类间距离
+    loss = (loss_ls + loss_other) / (len_ls + len_other)
     return loss
