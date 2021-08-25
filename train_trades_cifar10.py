@@ -40,7 +40,7 @@ parser.add_argument('--droprate', type=float, default=0.0, metavar='N',
 parser.add_argument('--AT-method', type=str, default='TRADES',
                     help='AT method', choices=['TRADES', 'TRADES_rm', 'TRADES_loss_adp', 'TRADES_ST_adp',
                                                'TRADES_aug', 'TRADES_augmulti', 'TRADES_aug_pgd', 'TRADES_aug_pgdattk', 'TRADES_aug_pgdattk2',
-                                               'TRADES_el',
+                                               'TRADES_el', 'TRADES_el_li2',
                                                'PGD', 'ST', 'ST_adp', 'ST_el', 'ST_only_el', 'ST_el_logits',
                                                'ST_el_li', 'ST_el_li2', 'ST_el_fix',
                                                'ST_label_smooth', 'ST_label_smooth35', 'ST_label_smooth25'])
@@ -349,6 +349,10 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
             loss = trades_loss_augSA(model=model, x_natural=data, y=target,
                            optimizer=optimizer, step_size=args.step_size, epsilon=args.epsilon,
                            perturb_steps=args.num_steps, beta=args.beta, beta_aug=args.beta_aug)
+        elif args.AT_method == 'TRADES_el_li2':
+            loss = trades_el_li2(model=model, x_natural=data, y=target,
+                                optimizer=optimizer, step_size=args.step_size, epsilon=args.epsilon,
+                                perturb_steps=args.num_steps, beta=args.beta, alpha=args.alpha, temperature=args.tmp)
         elif args.AT_method == 'PGD':
             loss = pgd_loss(model=model, X=data, y=target, optimizer=optimizer,
                             step_size=args.step_size, epsilon=args.epsilon,
