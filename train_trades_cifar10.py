@@ -277,8 +277,15 @@ def eval_test_perlabel(model, device, test_loader, logger, weight, args):
         acc = (output_label == target_label).sum() / target_label.size * 100
         acc_natural_label.append(acc)
     discrepancy = acc_natural_label-test_avg_accuracy
-    weight_step = [-args.reweight if i > args.discrepancy else args.reweight for i in discrepancy]  # 如果均值差异超过阈值，就更新 reweight 权重
+    weight_step = []
+    for i in discrepancy:
+        if i > args.discrepancy:
+            weight_step.append(-args.reweight)
+        elif i < -args.discrepancy:
+            weight_step.append(args.reweight)
+
     weight += torch.tensor(weight_step)  # 更新 weight
+    weight = torch.clamp(weight, min=0.1)  # 最小权重不得小于 0
     return test_loss, test_avg_accuracy, acc_natural_label, weight
 
 def adjust_learning_rate(optimizer, epoch):
@@ -542,8 +549,8 @@ def main():
         writer.add_scalars(graph_name, {'training_acc': training_accuracy, 'test_accuracy': test_accuracy}, epoch)
 
         # save checkpoint
-        # if epoch % args.save_freq == 0 or epoch == 76 or epoch == 100:
-        if epoch == 76 or epoch == 100:
+        if epoch % args.save_freq == 0 or epoch == 76 or epoch == 100:
+        # if epoch == 76 or epoch == 100:
             # torch.save(model.state_dict(),
             #            os.path.join(model_dir, 'model-wideres-epoch{}.pt'.format(epoch)))
             # torch.save(optimizer.state_dict(),
