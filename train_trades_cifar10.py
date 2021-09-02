@@ -266,7 +266,7 @@ def eval_test_perlabel(model, device, test_loader, logger, weight, args):
     # logger.info('Test: weight of per label:', weight)
     if args.AT_method == 'ST_reweight':
         logger.info('Test: weight of per label:')
-        logger.info(",".join(str(x) for x in weight.cpu().numpy()))
+        logger.info(",".join(str(round(x, 3)) for x in weight.cpu().numpy()))
     # print(",".join(str(x) for x in weight))
 
     # 获取每个 label 的 out 和 target
@@ -277,7 +277,7 @@ def eval_test_perlabel(model, device, test_loader, logger, weight, args):
         acc = (output_label == target_label).sum() / target_label.size * 100
         acc_natural_label.append(acc)
     discrepancy = acc_natural_label-test_avg_accuracy
-    weight_step = [args.reweight if i > args.discrepancy else -args.reweight for i in discrepancy]  # 如果均值差异超过阈值，就更新 reweight 权重
+    weight_step = [-args.reweight if i > args.discrepancy else args.reweight for i in discrepancy]  # 如果均值差异超过阈值，就更新 reweight 权重
     weight += torch.tensor(weight_step)  # 更新 weight
     return test_loss, test_avg_accuracy, acc_natural_label, weight
 

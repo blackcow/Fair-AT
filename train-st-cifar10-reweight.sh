@@ -1,6 +1,8 @@
 #!/usr/bin/env zsh
 
-# 根据 teST_reweight 的结果做 Reweight 
+# 根据 teST_reweight 的结果做 Reweight
+# reweight 每次权重更新的 step_size; discrepancy： 各 label 同 avg 差异大于 discrepancy 便调整权重
+
 echo "开始训练 1......"
 CUDA_VISIBLE_DEVICES=1 python train_trades_cifar10.py --model preactresnet --AT-method ST_reweight --dataset CIFAR10 --gpu-id 1 --seed 1 --reweight 0.05  --discrepancy 0
 wait
