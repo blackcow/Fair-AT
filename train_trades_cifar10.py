@@ -23,6 +23,7 @@ import random
 from dataset.cifar10_keeplabel import CIFAR10KP, CIFAR100KP
 from dataset.cifar10_rmlabel import CIFAR10RM
 from dataset.imagnette import *
+from dataset.cifar100_my import CIFAR100_MY
 
 parser = argparse.ArgumentParser(description='PyTorch CIFAR TRADES Adversarial Training')
 parser.add_argument('--batch-size', type=int, default=128, metavar='N',
@@ -43,7 +44,8 @@ parser.add_argument('--AT-method', type=str, default='TRADES',
                                                'TRADES_el', 'TRADES_el_li2',
                                                'PGD', 'ST', 'ST_adp', 'ST_el', 'ST_only_el', 'ST_el_logits',
                                                'ST_el_li', 'ST_el_li2', 'ST_el_fix',
-                                               'ST_label_smooth', 'ST_label_smooth35', 'ST_label_smooth25'])
+                                               'ST_label_smooth', 'ST_label_smooth35', 'ST_label_smooth25',
+                                               'ST_reweight'])
 # parser.add_argument('--epochs', type=int, default=76, metavar='N',
 parser.add_argument('--epochs', type=int, default=100, metavar='N',
                     help='number of epochs to train')
@@ -98,8 +100,11 @@ parser.add_argument('--list_aug', nargs='+', type=int)
 parser.add_argument('--rmlabel', type=int, help='Label of the remove part of training data')
 parser.add_argument('--percent', default=1, type=float, help='Percentage of deleted data')
 
-#smooth
+# smooth
 parser.add_argument('--smooth', default=0.1, type=float, help='parameter of label smooth loss ')
+# reweight
+parser.add_argument('--reweight', default=0.05, type=float, help='step size of reweight')
+parser.add_argument('--discrepancy', default=0.05, type=float, help='Threshold of discrepancy')
 args = parser.parse_args()
 
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
@@ -157,7 +162,8 @@ if args.dataset == 'CIFAR10':
     testset = torchvision.datasets.CIFAR10(root='../data', train=False, download=True, transform=transform_test)
     test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
 elif args.dataset == 'CIFAR100':
-    trainset = torchvision.datasets.CIFAR100(root='../data', train=True, download=True, transform=transform_train)
+    # trainset = torchvision.datasets.CIFAR100(root='../data', train=True, download=True, transform=transform_train)
+    trainset = CIFAR100_MY(root='../data', train=True, download=True, transform=transform_train)
     train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
     testset = torchvision.datasets.CIFAR100(root='../data', train=False, download=True, transform=transform_test)
     test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
@@ -228,6 +234,52 @@ def eval_test(model, device, test_loader, logger):
     test_accuracy = correct / len(test_loader.dataset)
     return test_loss, test_accuracy
 
+# 测试每个 label 的指标，给出 weight
+def eval_test_perlabel(model, device, test_loader, logger, weight, args):
+    output_all = []
+    target_all = []
+    acc_natural_label = []  # 各 label 的 acc
+    model.eval()
+    test_loss = 0
+    correct = 0
+    with torch.no_grad():
+        for data, target in test_loader:
+            data, target = data.cuda(), target.cuda()
+            _, output = model(data)
+            test_loss += F.cross_entropy(output, target, size_average=False).item()
+            pred = output.data.max(1)[1]
+            correct += pred.eq(target.view_as(pred)).sum().item()
+            output_all.append(pred)
+            target_all.append(target)
+
+    # 得到每个 label 的指标
+    # 计算每个类别下的 err
+    output_tmp = torch.stack(output_all[:-1])
+    target_tmp = torch.stack(target_all[:-1])
+    # 最后一行可能不满一列的长度，单独 concat
+    output_all = torch.cat((output_tmp.reshape(-1), output_all[-1]), dim=0).cpu().numpy()
+    target_all = torch.cat((target_tmp.reshape(-1), target_all[-1]), dim=0).cpu().numpy()
+    test_avg_accuracy = (output_all == target_all).sum() / target_all.size * 100
+
+    logger.info('Test: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
+        test_loss, correct, len(test_loader.dataset), test_avg_accuracy))
+    # logger.info('Test: weight of per label:', weight)
+    if args.AT_method == 'ST_reweight':
+        logger.info('Test: weight of per label:')
+        logger.info(",".join(str(x) for x in weight.cpu().numpy()))
+    # print(",".join(str(x) for x in weight))
+
+    # 获取每个 label 的 out 和 target
+    for m in np.unique(target_all):
+        idx = [i for i, x in enumerate(target_all) if x == m]
+        output_label = output_all[idx]
+        target_label = target_all[idx]
+        acc = (output_label == target_label).sum() / target_label.size * 100
+        acc_natural_label.append(acc)
+    discrepancy = acc_natural_label-test_avg_accuracy
+    weight_step = [args.reweight if i > args.discrepancy else -args.reweight for i in discrepancy]  # 如果均值差异超过阈值，就更新 reweight 权重
+    weight += torch.tensor(weight_step)  # 更新 weight
+    return test_loss, test_avg_accuracy, acc_natural_label, weight
 
 def adjust_learning_rate(optimizer, epoch):
     """decrease the learning rate"""
@@ -292,7 +344,7 @@ def update(rep_center, rep_temp, rep_num, batch_num):
     rep_center = rep_num / (rep_num + batch_num) * rep_center + rep_temp.sum() / (rep_num + batch_num)
     return rep_center
 
-def train(args, model, device, train_loader, optimizer, epoch, logger):
+def train(args, model, device, train_loader, optimizer, epoch, logger, weight):
     tmprep, _ = model(torch.zeros([20, 3, 32, 32]).cuda())
     _, C, H, W = tmprep.size()
     # C,H,W=512,4,4
@@ -386,7 +438,8 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
             loss = st_ls35(model=model, x_natural=data, y=target, smooth=args.smooth)
         elif args.AT_method == 'ST_label_smooth25':
             loss = st_ls25(model=model, x_natural=data, y=target, smooth=args.smooth)
-
+        elif args.AT_method == 'ST_reweight':
+            loss = st_reweight(model=model, x_natural=data, y=target, weight=weight)
         # 不调整顺序 这里只计算了 benign 的 rep
         elif args.AT_method == 'ST' and args.fair is not None:
             rep, out = model(data)
@@ -424,20 +477,6 @@ def train(args, model, device, train_loader, optimizer, epoch, logger):
 
             CEloss = F.cross_entropy(out, target)
             loss = CEloss + args.lamda * FairLoss1(rep, rep_center, target)
-
-                # # 只看 label 中心点之间的距离，作为 loss
-                # if args.fair == 'v4':  # 目前 rep 的距离看来，没达到与其效果
-                #     rep_center[i] = rep_center[i] * 0.9 + rep_temp.mean(dim=0) * 0.1
-                #     # 归一化，计算 input 同 rep_center 计算余弦相似度
-                #     rep_center = rep_center.detach()
-                #     rep_center_norm = nn.functional.normalize(rep_center, dim=1)
-                #
-                #     # 针对 label 中心互相远离的 loss
-                #     fl = FairLoss2(args.lamda)
-                #     CEloss = F.cross_entropy(out, target)
-                #     loss = CEloss + fl(rep_center_norm)
-                #     # 尝试不加 CELoss 单独 train fl
-                #     # CEloss 换成别的，类间 min，类内 max
 
         loss.backward()
         optimizer.step()
@@ -480,14 +519,15 @@ def main():
 
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
     logger = get_logger(model_dir + '/train.log')
-
+    weight = torch.ones(10)
     for epoch in range(1, args.epochs + 1):
         # adjust learning rate for SGD
         adjust_learning_rate(optimizer, epoch)
 
         # adversarial training
         start = time.time()
-        train(args, model, device, train_loader, optimizer, epoch, logger)
+        # train(args, model, device, train_loader, optimizer, epoch, logger)
+        train(args, model, device, train_loader, optimizer, epoch, logger, weight)
         # train(args, model, device, train_loader, optimizer, epoch)
         end = time.time()
         tm = (end - start)/60
@@ -495,7 +535,8 @@ def main():
         # evaluation on natural examples
         print('================================================================')
         _, training_accuracy = eval_train(model, device, train_loader, logger)
-        _, test_accuracy = eval_test(model, device, test_loader, logger)
+        # _, test_accuracy = eval_test(model, device, test_loader, logger)
+        _, test_accuracy, _, weigth = eval_test_perlabel(model, device, test_loader, logger, weight, args)  # 测试每个 label 的 acc，并给出 weight
         print('================================================================')
         graph_name = factors + '_accuracy'
         writer.add_scalars(graph_name, {'training_acc': training_accuracy, 'test_accuracy': test_accuracy}, epoch)

@@ -347,6 +347,11 @@ def st_ls25(model, x_natural, y, smooth):
     loss = (loss_ls + loss_other) / (len_ls + len_other)
     return loss
 
+def st_reweight(model, x_natural, y, weight):
+    _, out = model(x_natural)
+    loss = F.cross_entropy(out, y, weight=weight.cuda())
+    return loss
+
 
 # 针对特定 label ST, 调整 conflict pair 之间 feature 的距离
 # [3，5] ST loss 调整权重，权重改为内部调整
