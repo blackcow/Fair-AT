@@ -348,6 +348,7 @@ def st_ls25(model, x_natural, y, smooth):
     return loss
 
 def st_reweight(model, x_natural, y, weight):
+
     _, out = model(x_natural)
     loss = F.cross_entropy(out, y, weight=weight.cuda())
     return loss

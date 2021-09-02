@@ -197,6 +197,14 @@ elif args.dataset == 'ImageNet10':
     val = torchvision.datasets.ImageFolder(valdir, transform_train_Imagenet10)
     test_loader = torch.utils.data.DataLoader(val, batch_size=args.test_batch_size, shuffle=False, num_workers=4)
 
+def set_random_seed(seed, deterministic=False):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.cuda.manual_seed(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.backends.cudnn.deterministic = True
+
 def eval_train(model, device, train_loader, logger):
     model.eval()
     train_loss = 0
@@ -264,9 +272,7 @@ def eval_test_perlabel(model, device, test_loader, logger, weight, args):
     logger.info('Test: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
         test_loss, correct, len(test_loader.dataset), test_avg_accuracy))
     # logger.info('Test: weight of per label:', weight)
-    if args.AT_method == 'ST_reweight':
-        logger.info('Test: weight of per label:')
-        logger.info(",".join(str(round(x, 3)) for x in weight.cpu().numpy()))
+
     # print(",".join(str(x) for x in weight))
 
     # 获取每个 label 的 out 和 target
@@ -279,13 +285,20 @@ def eval_test_perlabel(model, device, test_loader, logger, weight, args):
     discrepancy = acc_natural_label-test_avg_accuracy
     weight_step = []
     for i in discrepancy:
-        if i > args.discrepancy:
-            weight_step.append(-args.reweight)
-        elif i < -args.discrepancy:
+        if i < -args.discrepancy:  # 小于均值加权重
             weight_step.append(args.reweight)
-
-    weight += torch.tensor(weight_step)  # 更新 weight
-    weight = torch.clamp(weight, min=0.1)  # 最小权重不得小于 0
+        elif i > args.discrepancy:  # 大于均值减权重
+            weight_step.append(-args.reweight)
+        else:
+            weight_step.append(0)
+    print(",".join(str(round(x, 3)) for x in weight_step))
+    weight = weight + torch.tensor(weight_step)  # 更新 weight
+    # weight = torch.clamp(weight, min=0.1)  # 最小权重不得小于 0
+    threshold = torch.ones_like(weight)*0.1
+    weight = torch.where(weight > 0, weight, threshold)  # 最小权重不得小于 0，最小值为 threshold
+    if args.AT_method == 'ST_reweight':
+        logger.info('Test: weight of per label:')
+        logger.info(",".join(str(round(x, 3)) for x in weight.cpu().numpy()))
     return test_loss, test_avg_accuracy, acc_natural_label, weight
 
 def adjust_learning_rate(optimizer, epoch):
@@ -494,13 +507,7 @@ def train(args, model, device, train_loader, optimizer, epoch, logger, weight):
                 epoch, batch_idx * len(data), len(train_loader.dataset),
                        100. * batch_idx / len(train_loader), loss.item()))
 
-def set_random_seed(seed, deterministic=False):
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    torch.cuda.manual_seed(seed)
-    np.random.seed(seed)
-    random.seed(seed)
-    torch.backends.cudnn.deterministic = True
+
 
 def main():
     set_random_seed(args.seed)
@@ -534,6 +541,8 @@ def main():
         # adversarial training
         start = time.time()
         # train(args, model, device, train_loader, optimizer, epoch, logger)
+        # if epoch < 20:  # 前0 轮不更新 weight
+        #     weight = torch.ones(10)
         train(args, model, device, train_loader, optimizer, epoch, logger, weight)
         # train(args, model, device, train_loader, optimizer, epoch)
         end = time.time()
@@ -543,7 +552,7 @@ def main():
         print('================================================================')
         _, training_accuracy = eval_train(model, device, train_loader, logger)
         # _, test_accuracy = eval_test(model, device, test_loader, logger)
-        _, test_accuracy, _, weigth = eval_test_perlabel(model, device, test_loader, logger, weight, args)  # 测试每个 label 的 acc，并给出 weight
+        _, test_accuracy, _, weight = eval_test_perlabel(model, device, test_loader, logger, weight, args)  # 测试每个 label 的 acc，并给出 weight
         print('================================================================')
         graph_name = factors + '_accuracy'
         writer.add_scalars(graph_name, {'training_acc': training_accuracy, 'test_accuracy': test_accuracy}, epoch)
