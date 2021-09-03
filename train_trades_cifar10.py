@@ -427,7 +427,9 @@ def train(args, model, device, train_loader, optimizer, epoch, logger, weight):
                                 optimizer=optimizer, step_size=args.step_size, epsilon=args.epsilon,
                                 perturb_steps=args.num_steps, beta=args.beta, alpha=args.alpha, temperature=args.tmp)
         elif args.AT_method == 'AT_reweight':
-            loss = at_reweight(model=model, x_natural=data, y=target, weight=weight)
+            loss = at_reweight(model=model, x_natural=data, y=target, weight=weight,
+                                   optimizer=optimizer, step_size=args.step_size, epsilon=args.epsilon,
+                                   perturb_steps=args.num_steps, beta=args.beta)
         elif args.AT_method == 'PGD':
             loss = pgd_loss(model=model, X=data, y=target, optimizer=optimizer,
                             step_size=args.step_size, epsilon=args.epsilon,
