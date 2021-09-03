@@ -105,6 +105,7 @@ parser.add_argument('--smooth', default=0.1, type=float, help='parameter of labe
 # reweight
 parser.add_argument('--reweight', default=0.05, type=float, help='step size of reweight')
 parser.add_argument('--discrepancy', default=0.05, type=float, help='Threshold of discrepancy')
+parser.add_argument('--start_reweight', default=0, type=int, help='Threshold of discrepancy')
 args = parser.parse_args()
 
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
@@ -541,8 +542,8 @@ def main():
         # adversarial training
         start = time.time()
         # train(args, model, device, train_loader, optimizer, epoch, logger)
-        # if epoch < 20:  # 前0 轮不更新 weight
-        #     weight = torch.ones(10)
+        if epoch < args.start_reweight:  # 前0 轮不更新 weight
+            weight = torch.ones(10)
         train(args, model, device, train_loader, optimizer, epoch, logger, weight)
         # train(args, model, device, train_loader, optimizer, epoch)
         end = time.time()
