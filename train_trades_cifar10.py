@@ -546,7 +546,7 @@ def main():
         # train(args, model, device, train_loader, optimizer, epoch, logger)
         if epoch < args.start_reweight:  # 前0 轮不更新 weight
             # weight = torch.ones(10)
-            weight = torch.tensor([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
+            weight = torch.tensor([0, 0, 0, 0, 0, 1, 1, 1, 1, 1], dtype=torch.float32)
         train(args, model, device, train_loader, optimizer, epoch, logger, weight)
         # train(args, model, device, train_loader, optimizer, epoch)
         end = time.time()
