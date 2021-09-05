@@ -272,9 +272,6 @@ def eval_test_perlabel(model, device, test_loader, logger, weight, args):
 
     logger.info('Test: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
         test_loss, correct, len(test_loader.dataset), test_avg_accuracy))
-    # logger.info('Test: weight of per label:', weight)
-
-    # print(",".join(str(x) for x in weight))
 
     # 获取每个 label 的 out 和 target
     for m in np.unique(target_all):
@@ -298,8 +295,9 @@ def eval_test_perlabel(model, device, test_loader, logger, weight, args):
     threshold = torch.ones_like(weight)*0.1
     weight = torch.where(weight > 0, weight, threshold)  # 最小权重不得小于 0，最小值为 threshold
     # 输出 weight
-    logger.info('Test: weight of per label:')
-    logger.info(",".join(str(round(x, 3)) for x in weight.cpu().numpy()))
+    if 'reweight' in args.AT_method:
+        logger.info('Test: weight of per label:')
+        logger.info(",".join(str(round(x, 3)) for x in weight.cpu().numpy()))
     return test_loss, test_avg_accuracy, acc_natural_label, weight
 
 def adjust_learning_rate(optimizer, epoch):
