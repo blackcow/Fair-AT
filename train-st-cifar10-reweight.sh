@@ -33,3 +33,5 @@ wait
 echo "结束训练......"
 
 
+
+CUDA_VISIBLE_DEVICES=1 python train_trades_cifar10.py --model preactresnet --AT-method ST_reweight  --dataset CIFAR10 --gpu-id 1 --seed 10 --reweight 0.05  --discrepancy 5 --start_reweight 200

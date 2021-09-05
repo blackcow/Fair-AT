@@ -297,9 +297,9 @@ def eval_test_perlabel(model, device, test_loader, logger, weight, args):
     # weight = torch.clamp(weight, min=0.1)  # 最小权重不得小于 0
     threshold = torch.ones_like(weight)*0.1
     weight = torch.where(weight > 0, weight, threshold)  # 最小权重不得小于 0，最小值为 threshold
-    if args.AT_method == 'ST_reweight':
-        logger.info('Test: weight of per label:')
-        logger.info(",".join(str(round(x, 3)) for x in weight.cpu().numpy()))
+    # 输出 weight
+    logger.info('Test: weight of per label:')
+    logger.info(",".join(str(round(x, 3)) for x in weight.cpu().numpy()))
     return test_loss, test_avg_accuracy, acc_natural_label, weight
 
 def adjust_learning_rate(optimizer, epoch):
@@ -547,7 +547,8 @@ def main():
         start = time.time()
         # train(args, model, device, train_loader, optimizer, epoch, logger)
         if epoch < args.start_reweight:  # 前0 轮不更新 weight
-            weight = torch.ones(10)
+            # weight = torch.ones(10)
+            weight = torch.tensor([0, 0, 0, 0, 0, 1, 1, 1, 1, 1])
         train(args, model, device, train_loader, optimizer, epoch, logger, weight)
         # train(args, model, device, train_loader, optimizer, epoch)
         end = time.time()
