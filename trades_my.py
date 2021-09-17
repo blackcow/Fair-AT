@@ -256,6 +256,7 @@ def st_el_li2(model, x_natural, y, list_aug, alpha, temperature):
 
 # 针对特定 label ST, 调整 conflict pair 之间 feature 的距离
 # 3-5 的类内相似度大，类间相似度为 0，正交。并且不再减 1
+# 仅类间相似度，取绝对值
 def st_el_li3(model, x_natural, y, list_aug, alpha, temperature):
     # temperature = 0.1
     idx1 = []
@@ -286,6 +287,62 @@ def st_el_li3(model, x_natural, y, list_aug, alpha, temperature):
         # 去掉对角线的 1
         rep_intra1 = rep_intra1 - torch.eye(len(rep_x_p1)).cuda()
         rep_intra2 = rep_intra2 - torch.eye(len(rep_x_p2)).cuda()
+        exp_logits1 = torch.exp(rep_intra1)
+        exp_logits2 = torch.exp(rep_intra2)
+
+        # 计算 inter sim，类间相似度
+        # 取绝对值，控制在[0,1]. 使得 dis 为 0，对应 loss 最小时
+        inter_sim = torch.matmul(rep_x_p1, rep_x_p2.T) / temperature
+        inter_sim = torch.abs(inter_sim)
+        exp_inter = torch.exp(inter_sim)
+
+        # Libo 老师讨论后, 计算 intra 相似度
+        exp_logits1 = alpha * exp_logits1 / exp_inter.sum(dim=1)
+        exp_logits2 = alpha * exp_logits2 / exp_inter.sum(dim=0)
+        prob = exp_logits1.sum() + exp_logits2.sum()
+
+        # Mean log-likelihood for positive
+        loss_el = - (torch.log((prob))) / (len_1+len_2)
+
+    # inter loss，类间距离
+    loss = loss_natural + loss_el
+    return loss
+
+
+# 针对特定 label ST, 调整 conflict pair 之间 feature 的距离
+# 3-5 的类内相似度大，类间相似度为 0，正交。并且不再减 1
+# 类内 & 类间相似度，都取绝对值
+def st_el_li4(model, x_natural, y, list_aug, alpha, temperature):
+    # temperature = 0.1
+    idx1 = []
+    idx2 = []
+    idx1.append((y == 3).nonzero().flatten())
+    idx2.append((y == 5).nonzero().flatten())
+    idx1 = torch.cat(idx1)
+    idx2 = torch.cat(idx2)
+    len_1 = len(idx1)
+    len_2 = len(idx2)
+
+    rep_x, logits_x = model(x_natural)
+    loss_natural = F.cross_entropy(logits_x, y)
+
+    if len_1 == 0 or len_2 == 0:
+        loss_el = 0
+        print(len_1, len_2)
+    else:
+        rep_x = F.adaptive_avg_pool2d(rep_x, (1, 1))
+        rep_x = F.normalize(rep_x.squeeze(), dim=1)
+        rep_x_p1 = torch.index_select(rep_x, 0, idx1)
+        rep_x_p2 = torch.index_select(rep_x, 0, idx2)
+        # 计算 intra dis，类内距离 [-1, 1]
+        rep_intra1 = torch.matmul(rep_x_p1, rep_x_p1.T) / temperature
+        rep_intra2 = torch.matmul(rep_x_p2, rep_x_p2.T) / temperature
+        # 去掉对角线的 1
+        rep_intra1 = rep_intra1 - torch.eye(len(rep_x_p1)).cuda()
+        rep_intra2 = rep_intra2 - torch.eye(len(rep_x_p2)).cuda()
+        # 取绝对值: [0,1]
+        rep_intra1 = torch.abs(rep_intra1)
+        rep_intra2 = torch.abs(rep_intra2)
         exp_logits1 = torch.exp(rep_intra1)
         exp_logits2 = torch.exp(rep_intra2)
 
