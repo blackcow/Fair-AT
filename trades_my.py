@@ -407,6 +407,106 @@ def st_el_li5(model, x_natural, y, list_aug, alpha, temperature):
     loss = loss_natural + loss_el
     return loss
 
+# 针对特定 label ST, 调整 conflict pair 之间 feature 的距离
+# 3-5 类间、类间分为两项 loss：相似度为 0，正交
+def st_el_li6(model, x_natural, y, list_aug, alpha, temperature):
+    # temperature = 0.1
+    idx1 = []
+    idx2 = []
+    idx1.append((y == 3).nonzero().flatten())
+    idx2.append((y == 5).nonzero().flatten())
+    idx1 = torch.cat(idx1)
+    idx2 = torch.cat(idx2)
+    len_1 = len(idx1)
+    len_2 = len(idx2)
+
+    rep_x, logits_x = model(x_natural)
+    loss_natural = F.cross_entropy(logits_x, y)
+
+    if len_1 == 0 or len_2 == 0:
+        loss_el = 0
+        print(len_1, len_2)
+    else:
+        rep_x = F.adaptive_avg_pool2d(rep_x, (1, 1))
+        rep_x = F.normalize(rep_x.squeeze(), dim=1)
+        rep_x_p1 = torch.index_select(rep_x, 0, idx1)
+        rep_x_p2 = torch.index_select(rep_x, 0, idx2)
+        # 计算 intra dis，类内距离 [0, 1]
+        rep_intra1 = torch.matmul(rep_x_p1, rep_x_p1.T) / temperature
+        rep_intra2 = torch.matmul(rep_x_p2, rep_x_p2.T) / temperature
+        # 去掉对角线的 1
+        rep_intra1 = rep_intra1 - torch.eye(len(rep_x_p1)).cuda()
+        rep_intra2 = rep_intra2 - torch.eye(len(rep_x_p2)).cuda()
+        # 取绝对值: [0,1]
+        rep_intra1 = torch.abs(rep_intra1)
+        rep_intra2 = torch.abs(rep_intra2)
+        exp_logits1 = torch.exp(rep_intra1)
+        exp_logits2 = torch.exp(rep_intra2)
+
+        # 计算 inter sim，类间相似度
+        # 取绝对值，控制在[0,1]. 使得 dis 为 0，对应 loss 最小时
+        inter_sim = torch.matmul(rep_x_p1, rep_x_p2.T) / temperature
+        inter_sim = torch.abs(inter_sim)
+        exp_inter = torch.exp(inter_sim)
+
+        inter_loss = alpha * (exp_logits1 + exp_logits2)
+        intra_loss = 1 / exp_inter.sum()
+
+        # Mean log-likelihood for positive
+        loss_el = - (torch.log(inter_loss) + torch.log(intra_loss)) / (len_1+len_2)
+        # loss_el = - torch.log(inter_loss) + exp_inter / (len_1+len_2)
+
+    loss = loss_natural + loss_el
+    return loss
+
+
+# 针对特定 label ST, 调整 conflict pair 之间 feature 的距离
+# 3-5 类间、类间分为两项 loss：类间相似度 abs 为 0，正交，类内 loss [0,2]
+# 不使用 exp
+def st_el_li7(model, x_natural, y, list_aug, alpha, temperature):
+    # temperature = 0.1
+    idx1 = []
+    idx2 = []
+    idx1.append((y == 3).nonzero().flatten())
+    idx2.append((y == 5).nonzero().flatten())
+    idx1 = torch.cat(idx1)
+    idx2 = torch.cat(idx2)
+    len_1 = len(idx1)
+    len_2 = len(idx2)
+
+    rep_x, logits_x = model(x_natural)
+    loss_natural = F.cross_entropy(logits_x, y)
+
+    if len_1 == 0 or len_2 == 0:
+        loss_el = 0
+        print(len_1, len_2)
+    else:
+        rep_x = F.adaptive_avg_pool2d(rep_x, (1, 1))
+        rep_x = F.normalize(rep_x.squeeze(), dim=1)
+        rep_x_p1 = torch.index_select(rep_x, 0, idx1)
+        rep_x_p2 = torch.index_select(rep_x, 0, idx2)
+        # 计算 intra dis，类内距离 [-1, 1]
+        rep_intra1 = torch.matmul(rep_x_p1, rep_x_p1.T) / temperature
+        rep_intra2 = torch.matmul(rep_x_p2, rep_x_p2.T) / temperature
+        # 当大家相似度为 1 时，rep_intra1 的值为 0，不相似最小为-2
+        rep_intra1 = rep_intra1 - torch.ones_like(rep_intra1).cuda()
+        rep_intra2 = rep_intra2 - torch.ones_like(rep_intra2).cuda()
+
+        # 计算 inter sim，类间相似度
+        # 取绝对值，控制在[0,1]. 使得 dis 为 0，对应 loss 最小时
+        inter_sim = torch.matmul(rep_x_p1, rep_x_p2.T) / temperature
+        inter_sim = torch.abs(inter_sim)
+
+        # intra 添加负号，loss [0,2]
+        intra_loss = -(rep_intra1.sum() + rep_intra2.sum()) * alpha
+        inter_loss = inter_sim.sum()
+
+        # Mean log-likelihood for positive
+        loss_el = (intra_loss + inter_loss) / (len_1+len_2)
+        # loss_el = - torch.log(inter_loss) + exp_inter / (len_1+len_2)
+
+    loss = loss_natural + loss_el
+    return loss
 
 class LabelSmoothingLoss(nn.Module):
     def __init__(self, classes, smoothing=0.0, dim=-1):

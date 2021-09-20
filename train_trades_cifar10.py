@@ -556,6 +556,12 @@ def train(args, model, device, train_loader, optimizer, epoch, logger, weight, w
         elif args.AT_method == 'ST_el_li5':
             loss = st_el_li5(model=model, x_natural=data, y=target, alpha=args.alpha, list_aug=args.list_aug,
                              temperature=args.tmp)
+        elif args.AT_method == 'ST_el_li6':
+            loss = st_el_li6(model=model, x_natural=data, y=target, alpha=args.alpha, list_aug=args.list_aug,
+                             temperature=args.tmp)
+        elif args.AT_method == 'ST_el_li7':
+            loss = st_el_li7(model=model, x_natural=data, y=target, alpha=args.alpha, list_aug=args.list_aug,
+                             temperature=args.tmp)
         elif args.AT_method == 'ST_label_smooth':
             loss = st_ls(model=model, x_natural=data, y=target, smooth=args.smooth)
         elif args.AT_method == 'ST_label_smooth35':
