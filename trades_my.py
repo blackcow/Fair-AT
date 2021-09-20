@@ -364,6 +364,50 @@ def st_el_li4(model, x_natural, y, list_aug, alpha, temperature):
     loss = loss_natural + loss_el
     return loss
 
+
+# 针对特定 label ST, 调整 conflict pair 之间 feature 的距离
+# 3-5 类间相似度为 0，正交。并且不再减 1
+# 类内相似度不再处理
+def st_el_li5(model, x_natural, y, list_aug, alpha, temperature):
+    # temperature = 0.1
+    idx1 = []
+    idx2 = []
+    idx1.append((y == 3).nonzero().flatten())
+    idx2.append((y == 5).nonzero().flatten())
+    idx1 = torch.cat(idx1)
+    idx2 = torch.cat(idx2)
+    len_1 = len(idx1)
+    len_2 = len(idx2)
+
+    rep_x, logits_x = model(x_natural)
+    loss_natural = F.cross_entropy(logits_x, y)
+
+    if len_1 == 0 or len_2 == 0:
+        loss_el = 0
+        print(len_1, len_2)
+    else:
+        rep_x = F.adaptive_avg_pool2d(rep_x, (1, 1))
+        rep_x = F.normalize(rep_x.squeeze(), dim=1)
+        rep_x_p1 = torch.index_select(rep_x, 0, idx1)
+        rep_x_p2 = torch.index_select(rep_x, 0, idx2)
+
+        # 计算 inter sim，类间相似度
+        # 取绝对值，控制在[0,1]. 使得 dis 为 0，对应 loss 最小时
+        inter_sim = torch.matmul(rep_x_p1, rep_x_p2.T) / temperature
+        inter_sim = torch.abs(inter_sim)
+        exp_inter = torch.exp(inter_sim)
+
+        # Libo 老师讨论后, 计算 intra 相似度
+        prob = 1 / (exp_inter.sum() * alpha)
+
+        # Mean log-likelihood for positive
+        loss_el = - (torch.log((prob))) / (len_1+len_2)
+
+    # inter loss，类间距离
+    loss = loss_natural + loss_el
+    return loss
+
+
 class LabelSmoothingLoss(nn.Module):
     def __init__(self, classes, smoothing=0.0, dim=-1):
         super(LabelSmoothingLoss, self).__init__()
