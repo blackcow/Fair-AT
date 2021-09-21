@@ -431,12 +431,12 @@ def st_el_li6(model, x_natural, y, list_aug, alpha, temperature):
         rep_x = F.normalize(rep_x.squeeze(), dim=1)
         rep_x_p1 = torch.index_select(rep_x, 0, idx1)
         rep_x_p2 = torch.index_select(rep_x, 0, idx2)
-        # 计算 intra dis，类内距离 [0, 1]
+        # 计算 intra dis，类内距离 [-1, 1]
         rep_intra1 = torch.matmul(rep_x_p1, rep_x_p1.T) / temperature
         rep_intra2 = torch.matmul(rep_x_p2, rep_x_p2.T) / temperature
-        # 去掉对角线的 1
-        rep_intra1 = rep_intra1 - torch.eye(len(rep_x_p1)).cuda()
-        rep_intra2 = rep_intra2 - torch.eye(len(rep_x_p2)).cuda()
+        ## 去掉对角线的 1
+        # rep_intra1 = rep_intra1 - torch.eye(len(rep_x_p1)).cuda()
+        # rep_intra2 = rep_intra2 - torch.eye(len(rep_x_p2)).cuda()
         # 取绝对值: [0,1]
         rep_intra1 = torch.abs(rep_intra1)
         rep_intra2 = torch.abs(rep_intra2)
@@ -449,7 +449,7 @@ def st_el_li6(model, x_natural, y, list_aug, alpha, temperature):
         inter_sim = torch.abs(inter_sim)
         exp_inter = torch.exp(inter_sim)
 
-        inter_loss = alpha * (exp_logits1 + exp_logits2)
+        inter_loss = alpha * (exp_logits1.sum() + exp_logits2.sum())
         intra_loss = 1 / exp_inter.sum()
 
         # Mean log-likelihood for positive
