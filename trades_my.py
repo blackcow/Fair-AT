@@ -865,3 +865,56 @@ def at_all_reweight_v2(model, x_natural, y, optimizer, weight_natural, weight_ad
     loss = loss_natural + beta * loss_robust
 
     return loss
+
+
+# V1: 只对 boundary loss 做 Reweight
+# 计算 benign acc 和 benign mean 的差值，来做 reweight
+def at_p2_reweight_v1(model, x_natural, y, optimizer, weight, step_size=0.003, epsilon=0.031, perturb_steps=10, beta=1.0, distance='l_inf'):
+    # define KL-loss
+    criterion_kl = nn.KLDivLoss(size_average=False)
+    model.eval()
+    batch_size = len(x_natural)
+    # generate adversarial example
+    x_adv = x_natural.detach() + 0.001 * torch.randn(x_natural.shape).cuda().detach()
+    if distance == 'l_inf':
+        for _ in range(perturb_steps):
+            x_adv.requires_grad_()
+            with torch.enable_grad():
+                _, out_adv = model(x_adv)
+                _, out_nat = model(x_natural)
+                loss_kl = criterion_kl(F.log_softmax(out_adv, dim=1),
+                                       F.softmax(out_nat, dim=1))
+            grad = torch.autograd.grad(loss_kl, [x_adv])[0]
+
+            x_adv = x_adv.detach() + step_size * torch.sign(grad.detach())
+            x_adv = torch.min(torch.max(x_adv, x_natural - epsilon), x_natural + epsilon)
+            x_adv = torch.clamp(x_adv, 0.0, 1.0)
+    else:
+        x_adv = torch.clamp(x_adv, 0.0, 1.0)
+    model.train()
+
+    x_adv = Variable(torch.clamp(x_adv, 0.0, 1.0), requires_grad=False)
+    # zero gradient
+    optimizer.zero_grad()
+    # calculate robust loss
+    _, logits_x = model(x_natural)
+    _, logits_adv = model(x_adv)
+    loss_natural = F.cross_entropy(logits_x, y)
+    # Reweight boundary loss
+    # weight_all = sum(weight_adv).cpu().numpy()
+    weight = weight.cpu().numpy()
+    loss_robust = 0
+    weight_all = 0
+    for m in range(10):
+        idx = [i for i, x in enumerate(y) if x == m]
+        a1 = logits_adv[idx]
+        a2 = logits_x[idx]
+        loss_robust += criterion_kl(F.log_softmax(a1, dim=1), F.softmax(a2, dim=1)) * weight[m]
+        weight_all += weight[m]*len(a1)
+    loss_robust = loss_robust * (1.0 / weight_all)
+
+    # loss_robust2 = (1.0 / batch_size) * criterion_kl(F.log_softmax(logits_adv, dim=1),
+    #                                                 F.softmax(logits_x, dim=1))
+    loss = loss_natural + beta * loss_robust
+
+    return loss

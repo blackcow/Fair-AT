@@ -515,6 +515,10 @@ def train(args, model, device, train_loader, optimizer, epoch, logger, weight, w
             loss = at_all_reweight_v2(model=model, x_natural=data, y=target, weight_natural=weight, weight_adv=weight_adv,
                                      optimizer=optimizer, step_size=args.step_size, epsilon=args.epsilon,
                                      perturb_steps=args.num_steps, beta=args.beta)
+        elif args.AT_method == 'AT_p2_reweightv1':  # 只对 boundary loss 做 Reweight
+            loss = at_p2_reweight_v1(model=model, x_natural=data, y=target, weight=weight,
+                                     optimizer=optimizer, step_size=args.step_size, epsilon=args.epsilon,
+                                     perturb_steps=args.num_steps, beta=args.beta)
         elif args.AT_method == 'PGD':
             loss = pgd_loss(model=model, X=data, y=target, optimizer=optimizer,
                             step_size=args.step_size, epsilon=args.epsilon,
