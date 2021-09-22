@@ -112,7 +112,7 @@ parser.add_argument('--test_attack', action='store_true', help='Whether to attac
 parser.add_argument('--discrepancy', default=0.05, type=float, help='Threshold of discrepancy')
 parser.add_argument('--start_reweight', default=0, type=int, help='Threshold of discrepancy')
 #mixup
-parser.add_argument('--mixalpha', default=1, type=int, help='alpha of mixup')
+parser.add_argument('--mixalpha', default=1, type=float, help='alpha of mixup')
 args = parser.parse_args()
 
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
