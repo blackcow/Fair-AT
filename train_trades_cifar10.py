@@ -111,6 +111,8 @@ parser.add_argument('--reweight', default=0.05, type=float, help='step size of r
 parser.add_argument('--test_attack', action='store_true', help='Whether to attack during the test')
 parser.add_argument('--discrepancy', default=0.05, type=float, help='Threshold of discrepancy')
 parser.add_argument('--start_reweight', default=0, type=int, help='Threshold of discrepancy')
+#mixup
+parser.add_argument('--mixalpha', default=1, type=int, help='alpha of mixup')
 args = parser.parse_args()
 
 os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu_id
@@ -322,6 +324,7 @@ def eval_test_perlabel(model, device, test_loader, logger, weight, weight_adv, a
     test_avg_accuracy = (output_all == target_all).sum() / target_all.size * 100
     test_adv_avg_accuracy = (output_adv_all == target_all).sum() / target_all.size * 100
 
+    test_loss /= len(test_loader.dataset)
     logger.info('Test: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)'.format(
         test_loss, correct, len(test_loader.dataset), test_avg_accuracy))
 
@@ -574,6 +577,8 @@ def train(args, model, device, train_loader, optimizer, epoch, logger, weight, w
             loss = st_ls25(model=model, x_natural=data, y=target, smooth=args.smooth)
         elif args.AT_method == 'ST_reweight':
             loss = st_reweight(model=model, x_natural=data, y=target, weight=weight)
+        elif args.AT_method == 'ST_mixup':
+            loss = mixup_st(model=model, x_natural=data, y=target, mixalpha=args.mixalpha)
         # 不调整顺序 这里只计算了 benign 的 rep
         elif args.AT_method == 'ST' and args.fair is not None:
             rep, out = model(data)

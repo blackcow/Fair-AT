@@ -5,7 +5,7 @@ from torch.autograd import Variable
 import torch.optim as optim
 # from pgd import attack_pgd
 from pgd import *
-
+import numpy as np
 
 def squared_l2_norm(x):
     flattened = x.view(x.unsqueeze(0).shape[0], -1)
@@ -916,5 +916,41 @@ def at_p2_reweight_v1(model, x_natural, y, optimizer, weight, step_size=0.003, e
     # loss_robust2 = (1.0 / batch_size) * criterion_kl(F.log_softmax(logits_adv, dim=1),
     #                                                 F.softmax(logits_x, dim=1))
     loss = loss_natural + beta * loss_robust
+
+    return loss
+
+def mixup_data(x, y, alpha=1.0, use_cuda=True):
+
+    '''Compute the mixup data. Return mixed inputs, pairs of targets, and lambda'''
+    if alpha > 0.:
+        lam = np.random.beta(alpha, alpha)
+    else:
+        lam = 1.
+    batch_size = x.size()[0]
+    if use_cuda:
+        index = torch.randperm(batch_size).cuda()
+    else:
+        index = torch.randperm(batch_size)
+
+    mixed_x = lam * x + (1 - lam) * x[index,:]
+    y_a, y_b = y, y[index]
+    return mixed_x, y_a, y_b, lam
+
+def mixup_criterion(y_a, y_b, lam):
+    return lambda criterion, pred: lam * criterion(pred, y_a) + (1 - lam) * criterion(pred, y_b)
+
+# mixup 会同自己 label 的 data 进行混合
+def mixup_st(model, x_natural, y, mixalpha):
+    # generate mixed inputs, two one-hot label vectors and mixing coefficient
+    inputs, targets_a, targets_b, lam = mixup_data(x_natural, y, mixalpha, use_cuda=True)
+
+    criterion = nn.CrossEntropyLoss()
+
+    _, logits_x = model(inputs)
+
+    loss_func = mixup_criterion(targets_a, targets_b, lam)
+    loss = loss_func(criterion, logits_x)
+
+    loss_natural = F.cross_entropy(logits_x, y)
 
     return loss
