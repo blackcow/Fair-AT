@@ -88,7 +88,7 @@ parser.add_argument('--fl_lamda', default=0.1, type=float, help='lamda of fairlo
 
 # training on dataset
 parser.add_argument('--dataset', default='CIFAR10',
-                    choices=['CIFAR10', 'CIFAR100', 'STL10', 'Imagnette', 'SVHN', 'ImageNet10'],
+                    choices=['CIFAR10', 'CIFAR100', 'FashionMNIST', 'STL10', 'Imagnette', 'SVHN', 'ImageNet10'],
                     help='train model on dataset')
 
 # ST adp
@@ -153,6 +153,13 @@ transform_train_STL10 = transforms.Compose([
     transforms.ToTensor(),
     # transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
 ])
+transform_train_FashionMNIST = transforms.Compose([
+    transforms.RandomCrop(28, padding=4),
+    transforms.RandomHorizontalFlip(),
+    transforms.ToTensor(),
+    transforms.Lambda(lambda x: x.repeat(3, 1, 1)),
+    # transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+])
 transform_train_Imagenet10 = transforms.Compose([
     # transforms.RandomResizedCrop(224),
     transforms.Resize([96, 96]),
@@ -176,6 +183,11 @@ elif args.dataset == 'CIFAR100':
     trainset = CIFAR100_MY(root='../data', train=True, download=True, transform=transform_train)
     train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
     testset = torchvision.datasets.CIFAR100(root='../data', train=False, download=True, transform=transform_test)
+    test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
+elif args.dataset == 'FashionMNIST':
+    trainset = torchvision.datasets.FashionMNIST(root='../data', train=True, download=True, transform=transform_train_FashionMNIST, target_transform=None)
+    train_loader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size, shuffle=True, **kwargs)
+    testset = torchvision.datasets.FashionMNIST(root='../data', train=False, download=True, transform=transform_train_FashionMNIST, target_transform=None)
     test_loader = torch.utils.data.DataLoader(testset, batch_size=args.test_batch_size, shuffle=False, **kwargs)
 elif args.dataset == 'STL10':
     # trainset = torchvision.datasets.STL10(root='../data', split='test', folds=None, transform=transform_train_STL10, target_transform=None, download=True)
@@ -643,7 +655,7 @@ def main():
     elif args.model == 'preactresnet':  # model 小，需要降 lr
         if args.dataset == 'CIFAR100':
             model = nn.DataParallel(create_network(num_classes=100).cuda())
-        elif args.dataset == 'CIFAR10' or args.dataset == 'STL10' or args.dataset == 'Imagnette' or args.dataset == 'SVHN' or args.dataset == 'ImageNet10':
+        elif args.dataset == 'CIFAR10' or args.dataset == 'FashionMNIST' or args.dataset == 'STL10' or args.dataset == 'Imagnette' or args.dataset == 'SVHN' or args.dataset == 'ImageNet10':
             model = nn.DataParallel(create_network(num_classes=10).cuda())
         if args.dataset == 'Imagnette' or args.dataset == 'ImageNet10':  # 图片大，原有 lr 导致 loss比较大
             args.lr = 0.005
